@@ -87,7 +87,7 @@ func NewService() *API {
 	ctl.apis = make(map[string]*_APIService)
 	ctl.services = make(map[string]*serviceinfo.APIServiceInfo)
 	//初始化rpc服务端
-	ctl.service = service.CreateService(define.SvcController, define.TTL)
+	ctl.service = service.CreateService(define.SvcController)
 	//验证函数
 	ctl.service.Auth(ctl.Auth)
 	//设置服务端最大访问量

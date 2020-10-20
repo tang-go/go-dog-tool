@@ -7,7 +7,7 @@ go-dog对应使用的自定义插件
 
 - clone 仓库
 ```bash
-https://github.com/tang-go/go-dog-tool.git
+git clone https://github.com/tang-go/go-dog-tool.git
 cd go-dog-tool
 ```
 
