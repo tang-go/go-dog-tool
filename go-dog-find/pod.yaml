@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: go-dog-find
+  namespace: go-dog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-dog-find
+  template:
+    metadata:
+      labels:
+        app: go-dog-find
+    spec:
+      containers:
+      - name: go-dog-find
+        image: ccr.ccs.tencentyun.com/go-dog/go-dog-find:latest
+        imagePullPolicy: IfNotPresent
+        ports: 
+        - containerPort: 4343
+        env:
+        - name: config
+          valueFrom:
+            configMapKeyRef:
+              name: go-dog-find-conf
+              key: config
