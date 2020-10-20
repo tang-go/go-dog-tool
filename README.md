@@ -23,6 +23,8 @@ go build
 cd go-dog-gw
 go build
 ./go-dog-gw
+
+浏览器输入 http://127.0.0.1/swagger/index.html 可访问文档
 ```
 
 - 启动服务管理中心
