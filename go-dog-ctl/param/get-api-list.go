@@ -2,7 +2,6 @@ package param
 
 //GetAPIListReq 获取API列表请求
 type GetAPIListReq struct {
-	Code string `json:"code" description:"业务随机码" type:"string"`
 }
 
 //GetAPIListRes 获取列表返回

@@ -2,7 +2,6 @@ package param
 
 //GetAdminInfoReq 获取管理员信息
 type GetAdminInfoReq struct {
-	Code string `json:"code" description:"业务随机码" type:"string"`
 }
 
 //GetAdminInfoRes 获取用户信息返回

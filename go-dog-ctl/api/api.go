@@ -49,11 +49,11 @@ func (pointer *API) Router() {
 		"获取角色列表",
 		pointer.GetRoleList)
 	//获取API列表
-	pointer.service.GET("GetAPIList", "v1", "get/api/list",
-		3,
-		true,
-		"获取api列表",
-		pointer.GetAPIList)
+	// pointer.service.GET("GetAPIList", "v1", "get/api/list",
+	// 	3,
+	// 	true,
+	// 	"获取api列表",
+	// 	pointer.GetAPIList)
 	//获取服务列表
 	pointer.service.GET("GetServiceList", "v1", "get/service/list",
 		3,
@@ -76,16 +76,12 @@ type API struct {
 	mysql     *mysql.Mysql
 	snowflake *snowflake.SnowFlake
 	cache     *cache.Cache
-	apis      map[string]*_APIService
-	services  map[string]*serviceinfo.APIServiceInfo
 	lock      sync.RWMutex
 }
 
 //NewService 初始化服务
 func NewService() *API {
 	ctl := new(API)
-	ctl.apis = make(map[string]*_APIService)
-	ctl.services = make(map[string]*serviceinfo.APIServiceInfo)
 	//初始化rpc服务端
 	ctl.service = service.CreateService(define.SvcController)
 	//验证函数
@@ -94,12 +90,6 @@ func NewService() *API {
 	ctl.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
 	ctl.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
-	//注册API上线通知
-	ctl.service.GetClient().GetDiscovery().RegAPIServiceOnlineNotice(ctl._ApiServiceOnline)
-	//注册API下线通知
-	ctl.service.GetClient().GetDiscovery().RegAPIServiceOfflineNotice(ctl._ApiServiceOffline)
-	//开始监听API事件
-	ctl.service.GetClient().GetDiscovery().WatchAPIService()
 	//初始化数据库
 	ctl.mysql = mysql.NewMysql(ctl.service.GetCfg())
 	//初始化数据库表
@@ -200,44 +190,6 @@ func (pointer *API) _InitMysql(phone, pwd string) {
 		panic(err)
 	}
 	tx.Commit()
-}
-
-//apiServiceOnline api服务上线
-func (pointer *API) _ApiServiceOnline(key string, service *serviceinfo.APIServiceInfo) {
-	pointer.lock.Lock()
-	for _, method := range service.API {
-		url := "/api/" + service.Name + "/" + method.Version + "/" + method.Path
-		if api, ok := pointer.apis[url]; ok {
-			api.count++
-		} else {
-			pointer.apis[url] = &_APIService{
-				method:  method,
-				name:    service.Name,
-				explain: service.Explain,
-				count:   1,
-			}
-		}
-		pointer.services[key] = service
-	}
-	pointer.lock.Unlock()
-}
-
-//apiServiceOffline api服务下线
-func (pointer *API) _ApiServiceOffline(key string) {
-	pointer.lock.Lock()
-	if service, ok := pointer.services[key]; ok {
-		for _, method := range service.API {
-			url := "/api/" + service.Name + "/" + method.Version + "/" + method.Path
-			if api, ok := pointer.apis[url]; ok {
-				api.count--
-				if api.count <= 0 {
-					delete(pointer.apis, url)
-				}
-			}
-		}
-		delete(pointer.services, key)
-	}
-	pointer.lock.Unlock()
 }
 
 // Set 设置验证码ID

@@ -32,6 +32,4 @@ const (
 	MaxClientRequestCount = 1000000
 	//MaxServiceRequestCount 服务端最大访问量
 	MaxServiceRequestCount = 1000000
-	//TTL 心跳时间
-	TTL int64 = 5
 )

@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -20,83 +19,31 @@ import (
 	customerror "github.com/tang-go/go-dog/error"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/pkg/client"
+	"github.com/tang-go/go-dog/pkg/config"
 	"github.com/tang-go/go-dog/pkg/context"
 	"github.com/tang-go/go-dog/plugins"
-	"github.com/tang-go/go-dog/serviceinfo"
 )
-
-//ServcieAPI api列表
-type ServcieAPI struct {
-	Method *serviceinfo.API
-	Name   string
-	Count  int32
-}
 
 //Gateway 服务发现
 type Gateway struct {
-	client   plugins.Client
-	apis     map[string]*ServcieAPI
-	services map[string]*serviceinfo.APIServiceInfo
-	lock     sync.RWMutex
+	client    plugins.Client
+	discovery *GoDogDiscovery
 }
 
 //NewGateway  新建发现服务
 func NewGateway() *Gateway {
 	gateway := new(Gateway)
-	gateway.apis = make(map[string]*ServcieAPI)
-	gateway.services = make(map[string]*serviceinfo.APIServiceInfo)
+	//初始化配置
+	cfg := config.NewConfig()
+	//初始化服务发现
+	gateway.discovery = NewGoDogDiscovery(cfg.GetDiscovery())
 	//初始化客户端
-	gateway.client = client.NewClient(define.TTL)
+	gateway.client = client.NewClient(cfg, gateway.discovery)
 	//设置客户端最大访问量
 	gateway.client.GetLimit().SetLimit(define.MaxClientRequestCount)
-	//注册API上线事件
-	gateway.client.GetDiscovery().RegAPIServiceOnlineNotice(gateway.APIServiceOnline)
-	//注册API下线事件
-	gateway.client.GetDiscovery().RegAPIServiceOfflineNotice(gateway.APIServiceOffline)
-	//开启API事件监听
-	gateway.client.GetDiscovery().WatchAPIService()
 	//初始化文档
 	swag.Register(swag.Name, gateway)
 	return gateway
-}
-
-//APIServiceOnline api服务上线
-func (g *Gateway) APIServiceOnline(key string, service *serviceinfo.APIServiceInfo) {
-	g.lock.Lock()
-	for _, method := range service.API {
-		url := "/api/" + service.Name + "/" + method.Version + "/" + method.Path
-		if api, ok := g.apis[url]; ok {
-			api.Count++
-		} else {
-			g.apis[url] = &ServcieAPI{
-				Method: method,
-				Name:   service.Name,
-				Count:  1,
-			}
-			log.Traceln("收到API上线", key, method.Name, url, method.Request)
-		}
-		g.services[key] = service
-	}
-	g.lock.Unlock()
-}
-
-//APIServiceOffline api服务下线
-func (g *Gateway) APIServiceOffline(key string) {
-	g.lock.Lock()
-	if service, ok := g.services[key]; ok {
-		for _, method := range service.API {
-			url := "/api/" + service.Name + "/" + method.Version + "/" + method.Path
-			if api, ok := g.apis[url]; ok {
-				api.Count--
-				if api.Count <= 0 {
-					delete(g.apis, url)
-					log.Traceln("收到API下线", key, method.Name, url, method.Request)
-				}
-			}
-		}
-		delete(g.services, key)
-	}
-	g.lock.Unlock()
 }
 
 //Run 启动
@@ -130,9 +77,7 @@ func (g *Gateway) Run() {
 //routerGetResolution get路由解析
 func (g *Gateway) routerGetResolution(c *gin.Context) {
 	url := "/api" + c.Param("router")
-	g.lock.RLock()
-	apiservice, ok := g.apis[url]
-	g.lock.RUnlock()
+	apiservice, ok := g.discovery.GetAPIByURL(url)
 	if !ok {
 		c.JSON(http.StatusNotFound, customerror.EnCodeError(http.StatusNotFound, "路由错误"))
 		return
@@ -231,9 +176,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 func (g *Gateway) routerPostResolution(c *gin.Context) {
 	//路由解析
 	url := c.Request.URL.String()
-	g.lock.RLock()
-	apiservice, ok := g.apis[url]
-	g.lock.RUnlock()
+	apiservice, ok := g.discovery.GetAPIByURL(url)
 	if !ok {
 		c.JSON(http.StatusNotFound, customerror.EnCodeError(http.StatusNotFound, "路由错误"))
 		return

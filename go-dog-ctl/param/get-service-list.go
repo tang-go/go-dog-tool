@@ -2,12 +2,18 @@ package param
 
 //GetServiceReq 获取服务列表请求
 type GetServiceReq struct {
-	Code string `json:"code" description:"业务随机码" type:"string"`
 }
 
 //GetServiceRes 获取服务响应
 type GetServiceRes struct {
-	List []*ServiceInfo `json:"list" description:"用户token" type:"[]*ServiceInfo"`
+	List []*Services `json:"list" description:"用户token" type:"[]*Services"`
+}
+
+//Services 服务
+type Services struct {
+	Name    string         `json:"name" description:"服务名称" type:"string"`
+	Explain string         `json:"explain" description:"服务description" type:"string"`
+	Info    []*ServiceInfo `json:"info" description:"用户token" type:"[]*ServiceInfo"`
 }
 
 //ServiceInfo 服务信息

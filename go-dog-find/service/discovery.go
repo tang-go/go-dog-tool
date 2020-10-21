@@ -113,7 +113,7 @@ func (d *Discovery) EventLoop() {
 		case <-d.close:
 			close(d.close)
 			return
-		case <-time.After(time.Second * 1):
+		case <-time.After(time.Second * 2):
 			//执行操作
 			d.PushEvent()
 		}

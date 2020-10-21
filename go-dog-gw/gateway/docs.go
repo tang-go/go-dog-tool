@@ -369,10 +369,10 @@ func (g *Gateway) _AssembleDocs() string {
 	info.Contact.Name = "有bug请联系电话13688460148"
 	info.Contact.URL = "tel:13688460148"
 
-	g.lock.RLock()
 	paths := make(map[string]interface{})
 	definitions := make(map[string]Definitions)
-	for url, api := range g.apis {
+
+	g.discovery.RangeAPI(func(url string, api *ServcieAPI) {
 		if api.Method.Kind == "POST" {
 			api, d := _CreatePOSTAPI(
 				api.Name,
@@ -399,8 +399,7 @@ func (g *Gateway) _AssembleDocs() string {
 				definitions[definition.Name] = definition
 			}
 		}
-	}
-	g.lock.RUnlock()
+	})
 
 	docs := &Docs{
 		Swagger:     "2.0",
