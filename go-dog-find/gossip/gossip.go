@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/tang-go/go-dog/lib/uuid"
@@ -64,12 +63,11 @@ type Gossip struct {
 //NewGossip 创建gossip协议对象
 func NewGossip(port int, delegate Delegate, members []string) *Gossip {
 	gossip := new(Gossip)
-	hostname, _ := os.Hostname()
 	c := memberlist.DefaultLocalConfig()
 	c.Delegate = delegate
 	c.BindPort = port
-	c.AdvertisePort = port
-	c.Name = hostname + "-" + uuid.GetToken()
+	//c.AdvertisePort = port
+	c.Name = uuid.GetToken()
 	m, err := memberlist.Create(c)
 	if err != nil {
 		panic(err)

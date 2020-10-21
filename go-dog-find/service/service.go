@@ -166,11 +166,13 @@ func (s *Service) Get(label string) (datas []*param.Data, o bool) {
 
 //NodeMeta 节点数据
 func (s *Service) NodeMeta(limit int) []byte {
+	fmt.Println("NodeMeta")
 	return []byte{}
 }
 
 //NotifyMsg 操作
 func (s *Service) NotifyMsg(b []byte) {
+	fmt.Println("NotifyMsg")
 	if len(b) == 0 {
 		return
 	}
@@ -209,6 +211,7 @@ func (s *Service) NotifyMsg(b []byte) {
 
 //GetBroadcasts 广播
 func (s *Service) GetBroadcasts(overhead, limit int) [][]byte {
+	//fmt.Println("GetBroadcasts", overhead, limit)
 	return s.gossip.GetBroadcasts(overhead, limit)
 }
 
@@ -227,17 +230,19 @@ func (s *Service) MergeRemoteState(buf []byte, join bool) {
 	if len(buf) == 0 {
 		return
 	}
-	if !join {
-		return
-	}
+	// if !join {
+	// 	log.Traceln("收到join同步", buf)
+	// 	return
+	// }
 	m := make(map[string]*Item)
 	if err := msgpack.Unmarshal(buf, &m); err != nil {
+		log.Errorln(err.Error())
 		return
 	}
 	s.lock.Lock()
 	for k, v := range m {
 		s.items[k] = v
-		log.Traceln("收到同步", k)
+		log.Traceln("收到同步", k, v)
 	}
 	s.lock.Unlock()
 }
