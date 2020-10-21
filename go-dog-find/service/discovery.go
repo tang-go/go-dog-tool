@@ -71,22 +71,9 @@ func (d *Discovery) PushEvent() {
 	for _, label := range d.topics {
 		all := new(param.All)
 		all.Label = label
-		array, err := d.service.cache.GetCache().SMembers(label)
-		if err == nil {
-			for _, r := range array {
-				data := new(param.Data)
-				err := r.DeCode(data)
-				if err != nil {
-					log.Errorln(err.Error())
-					continue
-				}
-				//查看服务是否还在线
-				if err = d.service.cache.GetCache().Get(data.Key, data); err != nil {
-					//不在线删除
-					d.service.cache.GetCache().SRem(data.Label, data)
-					log.Errorln(err.Error())
-					continue
-				}
+		datas, ok := d.service.Get(label)
+		if ok {
+			for _, data := range datas {
 				all.Datas = append(all.Datas, data)
 			}
 		}

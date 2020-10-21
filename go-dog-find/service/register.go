@@ -33,8 +33,7 @@ func (r *Register) Run() {
 		_, buff, err := io.ReadByTime(r.conn, time.Now().Add(time.Second*5))
 		if err != nil {
 			for _, data := range r.datas {
-				r.service.cache.GetCache().SRem(data.Label, data)
-				r.service.cache.GetCache().Del(data.Key)
+				r.service.Del(data.Label, data)
 			}
 			r.conn.Close()
 			log.Errorln(err.Error())
@@ -51,9 +50,7 @@ func (r *Register) Run() {
 		}
 		for _, data := range r.datas {
 			//上线服务
-			r.service.cache.GetCache().Sadd(data.Label, data)
-			//设置超时token
-			r.service.cache.GetCache().SetByTime(data.Key, data, 5)
+			r.service.Add(data.Label, data)
 		}
 	}
 }
