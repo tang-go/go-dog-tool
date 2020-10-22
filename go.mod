@@ -7,9 +7,11 @@ require (
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/lib/pq v1.2.0 // indirect
+	github.com/miekg/dns v1.1.26
 	github.com/mojocn/base64Captcha v1.3.1
 	github.com/pborman/uuid v1.2.1
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
+	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.8
 	github.com/tang-go/go-dog v0.0.0-20201021071936-017f59234b91

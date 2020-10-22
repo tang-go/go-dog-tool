@@ -4,11 +4,16 @@
   //说明
   "explain": "注册发现中心",
   //端口
-  "port": 4343,
+  "port": 4347,
   //Gossip端口
-  "gossip_port": 4344,
+  "gossip_port": 4348,
   //gossip 成员节点
-  "members": [],
+  "members": [
+    "127.0.0.1:4344",
+    "127.0.0.1:4346",
+    "127.0.0.1:4348",
+    "127.0.0.1:4350"
+  ],
   //运行模式 trace打印框架流程 dev开发模式 info 内网测试模式 pro 线上模式
   "runmode": "trace"
 }

@@ -4,9 +4,9 @@
   //说明
   "explain": "注册发现中心",
   //端口
-  "port": 4343,
+  "port": 4349,
   //Gossip端口
-  "gossip_port": 4344,
+  "gossip_port": 4350,
   //gossip 成员节点
   "members": [],
   //运行模式 trace打印框架流程 dev开发模式 info 内网测试模式 pro 线上模式

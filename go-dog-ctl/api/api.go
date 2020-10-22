@@ -49,11 +49,11 @@ func (pointer *API) Router() {
 		"获取角色列表",
 		pointer.GetRoleList)
 	//获取API列表
-	// pointer.service.GET("GetAPIList", "v1", "get/api/list",
-	// 	3,
-	// 	true,
-	// 	"获取api列表",
-	// 	pointer.GetAPIList)
+	pointer.service.POST("BuildService", "v1", "build/service",
+		3,
+		false,
+		"编译发布服务",
+		pointer.BuildService)
 	//获取服务列表
 	pointer.service.GET("GetServiceList", "v1", "get/service/list",
 		3,

@@ -1,7 +1,10 @@
 package gossip
 
 import (
-	"fmt"
+	"bufio"
+	"log"
+	"os"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/tang-go/go-dog/lib/uuid"
@@ -62,12 +65,19 @@ type Gossip struct {
 
 //NewGossip 创建gossip协议对象
 func NewGossip(port int, delegate Delegate, members []string) *Gossip {
+	src, err := os.OpenFile(os.DevNull, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		panic(err)
+	}
 	gossip := new(Gossip)
 	c := memberlist.DefaultLocalConfig()
 	c.Delegate = delegate
 	c.BindPort = port
-	//c.AdvertisePort = port
+	c.BindAddr = "0.0.0.0"
 	c.Name = uuid.GetToken()
+	c.GossipInterval = 1 * time.Second
+	c.PushPullInterval = 5 * time.Second
+	c.Logger = log.New(bufio.NewWriter(src), "", log.LstdFlags)
 	m, err := memberlist.Create(c)
 	if err != nil {
 		panic(err)
@@ -84,17 +94,22 @@ func NewGossip(port int, delegate Delegate, members []string) *Gossip {
 		},
 		RetransmitMult: 3,
 	}
-	node := m.LocalNode()
-	fmt.Printf("Local member %s:%d\n", node.Addr, node.Port)
+	//node := m.LocalNode()
 	return gossip
 }
 
 //QueueBroadcast 广播
 func (g *Gossip) QueueBroadcast(b *Broadcast) {
-	g.broadcasts.QueueBroadcast(b)
+	if g.broadcasts != nil {
+		g.broadcasts.QueueBroadcast(b)
+	}
 }
 
-//QueueBroadcast 广播
-func (g *Gossip) GetBroadcasts(overhead, limit int) [][]byte {
-	return g.broadcasts.GetBroadcasts(overhead, limit)
-}
+//GetBroadcasts 广播
+// func (g *Gossip) GetBroadcasts(overhead, limit int) [][]byte {
+// 	if g.broadcasts != nil {
+// 		res := g.broadcasts.GetBroadcasts(overhead, limit)
+// 		return res
+// 	}
+// 	return nil
+// }
