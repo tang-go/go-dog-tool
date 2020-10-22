@@ -71,11 +71,9 @@ func (d *Discovery) PushEvent() {
 	for _, label := range d.topics {
 		all := new(param.All)
 		all.Label = label
-		datas, ok := d.service.Get(label)
-		if ok {
-			for _, data := range datas {
-				all.Datas = append(all.Datas, data)
-			}
+		datas := d.service.Get(label)
+		for _, data := range datas {
+			all.Datas = append(all.Datas, data)
 		}
 		buff, err := all.EnCode(all)
 		if err != nil {

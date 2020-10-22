@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
-	"github.com/tang-go/go-dog/lib/uuid"
 )
 
 //Broadcast 广播传给gossip集群
@@ -64,7 +63,7 @@ type Gossip struct {
 }
 
 //NewGossip 创建gossip协议对象
-func NewGossip(port int, delegate Delegate, members []string) *Gossip {
+func NewGossip(name string, port int, delegate Delegate, members []string) *Gossip {
 	src, err := os.OpenFile(os.DevNull, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		panic(err)
@@ -74,8 +73,7 @@ func NewGossip(port int, delegate Delegate, members []string) *Gossip {
 	c.Delegate = delegate
 	c.BindPort = port
 	c.BindAddr = "0.0.0.0"
-	c.Name = uuid.GetToken()
-	c.GossipInterval = 1 * time.Second
+	c.Name = name
 	c.PushPullInterval = 5 * time.Second
 	c.Logger = log.New(bufio.NewWriter(src), "", log.LstdFlags)
 	m, err := memberlist.Create(c)
@@ -104,12 +102,3 @@ func (g *Gossip) QueueBroadcast(b *Broadcast) {
 		g.broadcasts.QueueBroadcast(b)
 	}
 }
-
-//GetBroadcasts 广播
-// func (g *Gossip) GetBroadcasts(overhead, limit int) [][]byte {
-// 	if g.broadcasts != nil {
-// 		res := g.broadcasts.GetBroadcasts(overhead, limit)
-// 		return res
-// 	}
-// 	return nil
-// }

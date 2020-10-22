@@ -33,7 +33,7 @@ func (r *Register) Run() {
 		_, buff, err := io.ReadByTime(r.conn, time.Now().Add(time.Second*5))
 		if err != nil {
 			for _, data := range r.datas {
-				r.service.Del(data.Label, data)
+				r.service.Del(data)
 			}
 			r.conn.Close()
 			log.Errorln(err.Error())
@@ -50,7 +50,7 @@ func (r *Register) Run() {
 		}
 		for _, data := range r.datas {
 			//上线服务
-			r.service.Add(data.Label, data)
+			r.service.Add(data)
 		}
 	}
 }

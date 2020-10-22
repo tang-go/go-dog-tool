@@ -27,13 +27,13 @@ const (
 //Update 数据同步
 type Update struct {
 	Action int8
-	Label  string
 	Data   *param.Data
 }
 
-//Item 内容
-type Item struct {
-	Datas map[string]*param.Data
+//Items 内容
+type Items struct {
+	Item    map[string]*param.Data
+	Version uint64
 }
 
 //Service 控制服务
@@ -42,9 +42,11 @@ type Service struct {
 	gossip     *gossip.Gossip
 	registers  map[string]*Register
 	discoverys map[string]*Discovery
-	items      map[string]*Item
+	items      map[string]*param.Data
 	broadcasts [][]byte
 	close      int32
+	version    uint64
+	name       string
 	lock       sync.RWMutex
 }
 
@@ -54,11 +56,13 @@ func NewService() *Service {
 		close:      0,
 		registers:  make(map[string]*Register),
 		discoverys: make(map[string]*Discovery),
-		items:      make(map[string]*Item),
+		items:      make(map[string]*param.Data),
+		version:    0,
+		name:       uuid.GetToken(),
 	}
 	s.cfg = NewConfig()
 	//创建gossip对象
-	s.gossip = gossip.NewGossip(s.cfg.GetGossipPort(), s, s.cfg.GetMembers())
+	s.gossip = gossip.NewGossip(s.name, s.cfg.GetGossipPort(), s, s.cfg.GetMembers())
 	//初始化日志
 	switch s.cfg.GetRunmode() {
 	case "panic":
@@ -90,81 +94,63 @@ func NewService() *Service {
 }
 
 //Add 增加
-func (s *Service) Add(label string, data *param.Data) error {
+func (s *Service) Add(data *param.Data) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	item, ok := s.items[label]
-	if ok {
-		if _, o := item.Datas[data.Key]; o {
-			return nil
+	if _, ok := s.items[data.Key]; !ok {
+		b, err := msgpack.Marshal(&Update{
+			Action: _Add,
+			Data:   data,
+		})
+		if err != nil {
+			log.Errorln(err.Error())
+			return err
 		}
-		item.Datas[data.Key] = data
-	} else {
-		//不存在
-		s.items[label] = &Item{
-			Datas: map[string]*param.Data{
-				data.Key: data,
-			},
-		}
+		s.items[data.Key] = data
+		s.broadcasts = append(s.broadcasts, b)
+		s.version++
+		log.Traceln("上线", data.Label, data.Key)
 	}
-	//储存当前指令
-	b, err := msgpack.Marshal(&Update{
-		Action: _Add,
-		Label:  label,
-		Data:   data,
-	})
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-	s.broadcasts = append(s.broadcasts, b)
-	log.Traceln("上线", label, data.Key)
 	return nil
 }
 
 //Del 删除
-func (s *Service) Del(label string, data *param.Data) error {
+func (s *Service) Del(data *param.Data) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	item, ok := s.items[label]
-	if ok {
-		delete(item.Datas, data.Key)
-		if len(item.Datas) <= 0 {
-			delete(s.items, label)
+	if _, ok := s.items[data.Key]; ok {
+		b, err := msgpack.Marshal(&Update{
+			Action: _Del,
+			Data:   data,
+		})
+		if err != nil {
+			log.Errorln(err.Error())
+			return err
 		}
+		delete(s.items, data.Key)
+		s.broadcasts = append(s.broadcasts, b)
+		s.version++
+		log.Traceln("下线", data.Label, data.Key)
 	}
-	b, err := msgpack.Marshal(&Update{
-		Action: _Del,
-		Label:  label,
-		Data:   data,
-	})
-	if err != nil {
-		log.Errorln(err.Error())
-		return err
-	}
-	s.broadcasts = append(s.broadcasts, b)
-	log.Traceln("下线", label, data.Key)
 	return nil
 }
 
 //Get 获取
-func (s *Service) Get(label string) (datas []*param.Data, o bool) {
+func (s *Service) Get(label string) (datas []*param.Data) {
 	s.lock.RLock()
-	defer s.lock.RUnlock()
-	val, ok := s.items[label]
-	if !ok {
-		return nil, false
+	items := s.items
+	s.lock.RUnlock()
+	for _, data := range items {
+		if data.Label == label {
+			datas = append(datas, data)
+		}
 	}
-	for _, data := range val.Datas {
-		datas = append(datas, data)
-	}
-	return datas, true
+	return
 }
 
 //NodeMeta 节点数据
 func (s *Service) NodeMeta(limit int) []byte {
-	return []byte("test")
+	return []byte(s.name)
 }
 
 //NotifyMsg 操作
@@ -178,35 +164,32 @@ func (s *Service) NotifyMsg(b []byte) {
 		return
 	}
 	s.lock.Lock()
-	defer s.lock.Unlock()
-	label := update.Label
 	data := update.Data
 	if update.Action == _Add {
-		item, ok := s.items[label]
-		if ok {
-			if _, o := item.Datas[data.Key]; o {
-				return
-			}
-			item.Datas[data.Key] = data
-		} else {
-			s.items[label] = &Item{
-				Datas: map[string]*param.Data{
-					data.Key: data,
-				},
-			}
+		if _, ok := s.items[data.Key]; !ok {
+			b, _ := msgpack.Marshal(&Update{
+				Action: _Add,
+				Data:   data,
+			})
+			s.items[data.Key] = data
+			s.broadcasts = append(s.broadcasts, b)
+			s.version++
+			log.Traceln("上线", data.Label, data.Key)
 		}
-		log.Traceln("上线", label, data.Key)
 	}
 	if update.Action == _Del {
-		item, ok := s.items[label]
-		if ok {
-			delete(item.Datas, data.Key)
-			if len(item.Datas) <= 0 {
-				delete(s.items, label)
-			}
+		if _, ok := s.items[data.Key]; ok {
+			b, _ := msgpack.Marshal(&Update{
+				Action: _Del,
+				Data:   data,
+			})
+			delete(s.items, data.Key)
+			s.broadcasts = append(s.broadcasts, b)
+			s.version++
+			log.Traceln("下线", data.Label, data.Key)
 		}
-		log.Traceln("下线", label, data.Key)
 	}
+	s.lock.Unlock()
 }
 
 //GetBroadcasts 广播
@@ -220,10 +203,17 @@ func (s *Service) GetBroadcasts(overhead, limit int) [][]byte {
 
 //LocalState tcp推拉数据接口
 func (s *Service) LocalState(join bool) []byte {
+	if join == true {
+		return nil
+	}
 	s.lock.RLock()
 	m := s.items
 	s.lock.RUnlock()
-	b, _ := msgpack.Marshal(m)
+	item := Items{
+		Item:    m,
+		Version: s.version,
+	}
+	b, _ := msgpack.Marshal(&item)
 	return b
 }
 
@@ -232,21 +222,39 @@ func (s *Service) MergeRemoteState(buf []byte, join bool) {
 	if len(buf) == 0 {
 		return
 	}
+	if join == true {
+		return
+	}
+	items := new(Items)
+	msgpack.Unmarshal(buf, &items)
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	items := make(map[string]*Item)
-	msgpack.Unmarshal(buf, &items)
-	for label, item := range items {
-		if i, ok := s.items[label]; ok {
-			for _, data := range item.Datas {
-
-			}
-		} else {
-			s.items[label] = items[label]
-		}
-
+	if items.Version < s.version {
+		return
 	}
-	log.Traceln("全体同步", join)
+	for key, data := range items.Item {
+		if _, ok := s.items[key]; !ok {
+			b, _ := msgpack.Marshal(&Update{
+				Action: _Add,
+				Data:   data,
+			})
+			s.items[data.Key] = data
+			s.broadcasts = append(s.broadcasts, b)
+			log.Traceln("上线", join, data.Label, data.Key)
+		}
+	}
+	for key, data := range s.items {
+		if _, ok := items.Item[key]; !ok {
+			b, _ := msgpack.Marshal(&Update{
+				Action: _Del,
+				Data:   data,
+			})
+			delete(s.items, data.Key)
+			s.broadcasts = append(s.broadcasts, b)
+			log.Traceln("下线", join, data.Label, data.Key)
+		}
+	}
+
 }
 
 //Run 启动
