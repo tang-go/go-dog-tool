@@ -72,8 +72,13 @@ func (d *Discovery) PushEvent() {
 		all := new(param.All)
 		all.Label = label
 		datas := d.service.Get(label)
+		now := time.Now().Unix() - 5
 		for _, data := range datas {
-			all.Datas = append(all.Datas, data)
+			if data.Time > now {
+				// d.service.Del(data)
+				// continue
+				all.Datas = append(all.Datas, data)
+			}
 		}
 		buff, err := all.EnCode(all)
 		if err != nil {

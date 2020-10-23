@@ -14,7 +14,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.8
-	github.com/tang-go/go-dog v0.0.0-20201021071936-017f59234b91
+	github.com/tang-go/go-dog v0.0.0-20201023083137-a3d1738e6013
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	k8s.io/api v0.17.0 // indirect

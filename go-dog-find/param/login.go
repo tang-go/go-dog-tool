@@ -18,4 +18,5 @@ type Data struct {
 	Label string
 	Key   string
 	Value string
+	Time  int64
 }

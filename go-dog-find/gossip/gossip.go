@@ -74,7 +74,7 @@ func NewGossip(name string, port int, delegate Delegate, members []string) *Goss
 	c.BindPort = port
 	c.BindAddr = "0.0.0.0"
 	c.Name = name
-	c.PushPullInterval = 5 * time.Second
+	c.PushPullInterval = 1 * time.Second
 	c.Logger = log.New(bufio.NewWriter(src), "", log.LstdFlags)
 	m, err := memberlist.Create(c)
 	if err != nil {

@@ -48,12 +48,18 @@ func (pointer *API) Router() {
 		true,
 		"获取角色列表",
 		pointer.GetRoleList)
-	//获取API列表
+	//发布服务
 	pointer.service.POST("BuildService", "v1", "build/service",
 		3,
 		false,
 		"编译发布服务",
 		pointer.BuildService)
+	//docker启动服务
+	pointer.service.POST("StartDocker", "v1", "strat/docker",
+		3,
+		false,
+		"docker方式启动服务",
+		pointer.StartDocker)
 	//获取服务列表
 	pointer.service.GET("GetServiceList", "v1", "get/service/list",
 		3,

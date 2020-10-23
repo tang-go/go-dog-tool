@@ -50,6 +50,7 @@ func (r *Register) Run() {
 		}
 		for _, data := range r.datas {
 			//上线服务
+			data.Time = time.Now().Unix()
 			r.service.Add(data)
 		}
 	}
