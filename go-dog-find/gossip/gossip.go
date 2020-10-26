@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	mylog "github.com/tang-go/go-dog/log"
 )
 
 //Broadcast 广播传给gossip集群
@@ -57,6 +58,20 @@ type Delegate interface {
 	MergeRemoteState(buf []byte, join bool)
 }
 
+type eventDelegate struct{}
+
+func (ed *eventDelegate) NotifyJoin(node *memberlist.Node) {
+	mylog.Traceln("A node has joined: " + node.String())
+}
+
+func (ed *eventDelegate) NotifyLeave(node *memberlist.Node) {
+	mylog.Traceln("A node has leave: " + node.String())
+}
+
+func (ed *eventDelegate) NotifyUpdate(node *memberlist.Node) {
+	mylog.Traceln("A node was updated: " + node.String())
+}
+
 //Gossip 协议实现
 type Gossip struct {
 	broadcasts *memberlist.TransmitLimitedQueue
@@ -71,6 +86,7 @@ func NewGossip(name string, port int, delegate Delegate, members []string) *Goss
 	gossip := new(Gossip)
 	c := memberlist.DefaultLocalConfig()
 	c.Delegate = delegate
+	c.Events = &eventDelegate{}
 	c.BindPort = port
 	c.BindAddr = "0.0.0.0"
 	c.Name = name

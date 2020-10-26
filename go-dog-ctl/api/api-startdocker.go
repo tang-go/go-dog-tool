@@ -15,7 +15,7 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 		docker = fmt.Sprintf("%s -p %d:%d", docker, port.ExternalPort, port.InsidePort)
 	}
 	docker = fmt.Sprintf("%s %s", docker, request.Images)
-	response.Result = pointer._RunInLinux(`
+	pointer._RunInLinux(`
 	docker kill ` + request.Name + `
 	docker rm ` + request.Name + `
 	` + docker + `

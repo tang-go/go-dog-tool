@@ -1,7 +1,8 @@
 package api
 
 import (
-	"bytes"
+	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -35,7 +36,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	}
 	name := strings.Replace(paths[l-1], ".git", "", -1)
 	if ok, err := pointer._PathExists(name); ok && err == nil {
-		response.Result = pointer._RunInLinux(`
+		pointer._RunInLinux(`
 		cd ` + name + `
 		git pull 
 		cd ` + request.Path + `
@@ -46,7 +47,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		rm -rf ` + request.Name + `
 		echo 编译完成`)
 	} else {
-		response.Result = pointer._RunInLinux(`
+		pointer._RunInLinux(`
 		git clone ` + request.Git + `
 		cd ` + name + `
 		cd ` + request.Path + `
@@ -61,16 +62,35 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	return
 }
 
-func (pointer *API) _RunInLinux(cmd string) string {
-	var out bytes.Buffer
-	//var stderr bytes.Buffer
+func (pointer *API) _RunInLinux(cmd string) error {
 	c := exec.Command("sh", "-c", cmd)
-	//c.Stdin = os.Stdin
-	c.Stdout = &out
-	//c.Stderr = &stderr
+	stdout, err := c.StdoutPipe()
+	if err != nil {
+		fmt.Fprintln(os.Stdin, "error=>", err.Error())
+		return err
+	}
+	stderr, err := c.StderrPipe()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error=>", err.Error())
+		return err
+	}
 	c.Start()
+	// 正常日志
+	logScan := bufio.NewScanner(stdout)
+	go func() {
+		for logScan.Scan() {
+			fmt.Println(logScan.Text())
+		}
+	}()
+	//错误
+	errScan := bufio.NewScanner(stderr)
+	go func() {
+		for errScan.Scan() {
+			fmt.Println(errScan.Text())
+		}
+	}()
 	c.Wait()
-	return out.String()
+	return nil
 }
 
 func (pointer *API) _PathExists(path string) (bool, error) {
