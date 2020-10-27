@@ -16,10 +16,17 @@ const (
 )
 
 //Aes key加密
-const (
-	AdminAes = "aes.shoplive.code"
-)
+// const (
+// 	AdminAes = "aes.go-dog-dog.code"
+// )
 
+//定义事件
+const (
+	//RunDockerEvent 启动docker
+	RunDockerTopic = "run-docker-topic"
+	//BuildServiceEvent 编译服务
+	BuildServiceTopic = "build-service-topic"
+)
 const (
 	//AdminTokenValidityTime 管理员token有效时间 1小时
 	AdminTokenValidityTime = 60 * 60

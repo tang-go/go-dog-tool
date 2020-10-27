@@ -1,8 +1,8 @@
 {
   //服务名称
   "server_name": "gateway",
-  //端口
-  "port": 80,
+  //说明
+  "explain": "网管",
   //服务发现
   "discovery": [
     "127.0.0.1:4343",

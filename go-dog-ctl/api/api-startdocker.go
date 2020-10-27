@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
@@ -15,11 +16,15 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 		docker = fmt.Sprintf("%s -p %d:%d", docker, port.ExternalPort, port.InsidePort)
 	}
 	docker = fmt.Sprintf("%s %s", docker, request.Images)
-	pointer._RunInLinux(`
-	docker kill ` + request.Name + `
-	docker rm ` + request.Name + `
-	` + docker + `
-	`)
+	go pointer._RunInLinux(
+		ctx,
+		ctx.GetToken(),
+		define.RunDockerTopic,
+		`
+		docker kill `+request.Name+`
+		docker rm `+request.Name+`
+		`+docker+`
+		`)
 	log.Traceln(docker, response.Result)
 	return
 }

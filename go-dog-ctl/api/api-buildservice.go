@@ -1,10 +1,6 @@
 package api
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 
@@ -36,70 +32,36 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	}
 	name := strings.Replace(paths[l-1], ".git", "", -1)
 	if ok, err := pointer._PathExists(name); ok && err == nil {
-		pointer._RunInLinux(`
-		cd ` + name + `
-		git pull 
-		cd ` + request.Path + `
-		go mod tidy
-		` + build + `
-		docker build -t ` + request.Harbor + `/` + request.Name + `:` + request.Version + ` .
-		docker push ` + request.Harbor + `/` + request.Name + `:` + request.Version + ` 	
-		rm -rf ` + request.Name + `
-		echo 编译完成`)
+		go pointer._RunInLinux(
+			ctx,
+			ctx.GetToken(),
+			define.BuildServiceTopic,
+			`
+			cd `+name+`
+			git pull 
+			cd `+request.Path+`
+			go mod tidy
+			`+build+`
+			docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
+			docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
+			rm -rf `+request.Name+`
+			echo 编译完成`)
 	} else {
-		pointer._RunInLinux(`
-		git clone ` + request.Git + `
-		cd ` + name + `
-		cd ` + request.Path + `
-		go mod tidy
-		` + build + `
-		docker build -t ` + request.Harbor + `/` + request.Name + `:` + request.Version + ` .
-		docker push ` + request.Harbor + `/` + request.Name + `:` + request.Version + ` 	
-		rm -rf ` + request.Name + `
-		echo 编译完成`)
+		go pointer._RunInLinux(
+			ctx,
+			ctx.GetToken(),
+			define.BuildServiceTopic,
+			`
+			git clone `+request.Git+`
+			cd `+name+`
+			cd `+request.Path+`
+			go mod tidy
+			`+build+`
+			docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
+			docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
+			rm -rf `+request.Name+`
+			echo 编译完成`)
 	}
 	log.Traceln(response.Result)
 	return
-}
-
-func (pointer *API) _RunInLinux(cmd string) error {
-	c := exec.Command("sh", "-c", cmd)
-	stdout, err := c.StdoutPipe()
-	if err != nil {
-		fmt.Fprintln(os.Stdin, "error=>", err.Error())
-		return err
-	}
-	stderr, err := c.StderrPipe()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error=>", err.Error())
-		return err
-	}
-	c.Start()
-	// 正常日志
-	logScan := bufio.NewScanner(stdout)
-	go func() {
-		for logScan.Scan() {
-			fmt.Println(logScan.Text())
-		}
-	}()
-	//错误
-	errScan := bufio.NewScanner(stderr)
-	go func() {
-		for errScan.Scan() {
-			fmt.Println(errScan.Text())
-		}
-	}()
-	c.Wait()
-	return nil
-}
-
-func (pointer *API) _PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }

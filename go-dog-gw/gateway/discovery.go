@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tang-go/go-dog/lib/io"
+	"github.com/tang-go/go-dog/lib/rand"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/pkg/discovery/param"
 	"github.com/tang-go/go-dog/serviceinfo"
@@ -121,11 +122,9 @@ func (d *GoDogDiscovery) _ConnectClient() error {
 	if d.close {
 		return nil
 	}
-	address := d.address[d.pos]
-	d.pos++
-	if d.pos >= d.count {
-		d.pos = 0
-	}
+	//随机链接
+	index := rand.IntRand(0, d.count)
+	address := d.address[index]
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", address)
 	if err != nil {
 		return err
@@ -212,7 +211,7 @@ func (d *GoDogDiscovery) _Watch() {
 								Name:   info.Name,
 								Count:  1,
 							}
-							log.Traceln("收到API上线", data.Key, method.Name, url, method.Request)
+							log.Tracef(" 上线 | %s | %s ", data.Key, url)
 						}
 					}
 					d.apidata[data.Key] = info
@@ -227,7 +226,7 @@ func (d *GoDogDiscovery) _Watch() {
 							api.Count--
 							if api.Count <= 0 {
 								delete(d.apis, url)
-								log.Traceln("收到API下线", key, method.Name, url, method.Request)
+								log.Tracef(" 下线 | %s | %s ", data.Key, url)
 							}
 						}
 					}

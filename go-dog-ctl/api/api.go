@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bufio"
 	"fmt"
 	"math/big"
 	"net"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
+	"github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/lib/md5"
 	"github.com/tang-go/go-dog/lib/rand"
@@ -51,13 +55,13 @@ func (pointer *API) Router() {
 	//发布服务
 	pointer.service.POST("BuildService", "v1", "build/service",
 		3,
-		false,
+		true,
 		"编译发布服务",
 		pointer.BuildService)
 	//docker启动服务
 	pointer.service.POST("StartDocker", "v1", "strat/docker",
 		3,
-		false,
+		true,
 		"docker方式启动服务",
 		pointer.StartDocker)
 	//获取服务列表
@@ -224,4 +228,66 @@ func (pointer *API) Verify(id, answer string, clear bool) bool {
 		return false
 	}
 	return true
+}
+
+func (pointer *API) _RunInLinux(ctx plugins.Context, token string, topic string, cmd string) error {
+	c := exec.Command("sh", "-c", cmd)
+	stdout, err := c.StdoutPipe()
+	if err != nil {
+		fmt.Fprintln(os.Stdin, "error=>", err.Error())
+		return err
+	}
+	stderr, err := c.StderrPipe()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error=>", err.Error())
+		return err
+	}
+	c.Start()
+	// 正常日志
+	logScan := bufio.NewScanner(stdout)
+	go func() {
+		for logScan.Scan() {
+			res := new(param.PushRes)
+			ctx.GetClient().Broadcast(
+				ctx,
+				define.SvcGateWay,
+				"Push",
+				&param.PushReq{
+					Token: token,
+					Topic: topic,
+					Msg:   logScan.Text(),
+				},
+				res)
+		}
+	}()
+	//错误
+	errScan := bufio.NewScanner(stderr)
+	go func() {
+		for errScan.Scan() {
+			res := new(param.PushRes)
+			ctx.GetClient().Broadcast(
+				ctx,
+				define.SvcGateWay,
+				"Push",
+				&param.PushReq{
+					Token: token,
+					Topic: topic,
+					Msg:   errScan.Text(),
+				},
+				res)
+		}
+	}()
+	c.Wait()
+	return nil
+}
+
+func (pointer *API) _PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }

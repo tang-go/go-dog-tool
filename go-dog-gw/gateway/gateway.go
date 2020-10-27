@@ -4,11 +4,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,17 +13,19 @@ import (
 	"github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/swaggo/swag"
 	"github.com/tang-go/go-dog-tool/define"
+	"github.com/tang-go/go-dog-tool/go-dog-gw/ws"
 	customerror "github.com/tang-go/go-dog/error"
 	"github.com/tang-go/go-dog/log"
-	"github.com/tang-go/go-dog/pkg/client"
 	"github.com/tang-go/go-dog/pkg/config"
 	"github.com/tang-go/go-dog/pkg/context"
+	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
 )
 
 //Gateway 服务发现
 type Gateway struct {
-	client    plugins.Client
+	service   plugins.Service
+	ws        *ws.Ws
 	discovery *GoDogDiscovery
 }
 
@@ -35,12 +34,23 @@ func NewGateway() *Gateway {
 	gateway := new(Gateway)
 	//初始化配置
 	cfg := config.NewConfig()
+	//ws
+	gateway.ws = ws.NewWs(cfg)
 	//初始化服务发现
 	gateway.discovery = NewGoDogDiscovery(cfg.GetDiscovery())
-	//初始化客户端
-	gateway.client = client.NewClient(cfg, gateway.discovery)
+	//初始化rpc服务
+	gateway.service = service.CreateService(define.SvcGateWay, cfg, gateway.discovery)
+	//设置服务端最大访问量
+	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
-	gateway.client.GetLimit().SetLimit(define.MaxClientRequestCount)
+	gateway.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
+	//推送消息
+	gateway.service.RPC(
+		"Push",
+		3,
+		false,
+		"推送消息",
+		gateway.ws.Push)
 	//初始化文档
 	swag.Register(swag.Name, gateway)
 	return gateway
@@ -48,9 +58,6 @@ func NewGateway() *Gateway {
 
 //Run 启动
 func (g *Gateway) Run() {
-	c := make(chan os.Signal)
-	//监听指定信号
-	signal.Notify(c, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.New()
@@ -58,6 +65,10 @@ func (g *Gateway) Run() {
 		router.Use(g.logger())
 		//静态文件夹
 		//router.StaticFS("/", http.Dir("./static"))
+		//websocket路由
+		router.GET("/ws", func(c *gin.Context) {
+			g.ws.Connect(c.Writer, c.Request, c)
+		})
 		//swagger 文档
 		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		//添加路由
@@ -70,8 +81,10 @@ func (g *Gateway) Run() {
 			panic(err.Error())
 		}
 	}()
-	//阻塞直至有信号传入
-	<-c
+	err := g.service.Run()
+	if err != nil {
+		log.Warnln(err.Error())
+	}
 }
 
 //routerGetResolution get路由解析
@@ -148,7 +161,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 		}
 		p[key] = v
 	}
-	body, _ := g.client.GetCodec().EnCode("json", p)
+	body, _ := g.service.GetClient().GetCodec().EnCode("json", p)
 	ctx := context.Background()
 	ctx.SetAddress(c.ClientIP())
 	ctx.SetIsTest(isTest)
@@ -156,14 +169,14 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	ctx.SetToken(token)
 	ctx.SetData("URL", url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
-	back, err := g.client.SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
+	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)
 		c.JSON(http.StatusOK, e)
 		return
 	}
 	resp := new(interface{})
-	g.client.GetCodec().DeCode("json", back, resp)
+	g.service.GetClient().GetCodec().DeCode("json", back, resp)
 	c.JSON(http.StatusOK, gin.H{
 		"code": define.SuccessCode,
 		"body": resp,
@@ -230,14 +243,14 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	ctx.SetTraceID(traceID)
 	ctx.SetData("URL", url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
-	back, err := g.client.SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
+	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)
 		c.JSON(http.StatusOK, e)
 		return
 	}
 	resp := new(interface{})
-	g.client.GetCodec().DeCode("json", back, resp)
+	g.service.GetClient().GetCodec().DeCode("json", back, resp)
 	c.JSON(http.StatusOK, gin.H{
 		"code": define.SuccessCode,
 		"body": resp,
@@ -249,7 +262,7 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 //validation 验证参数
 func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, error) {
 	p := make(map[string]interface{})
-	if err := g.client.GetCodec().DeCode("json", []byte(param), &p); err != nil {
+	if err := g.service.GetClient().GetCodec().DeCode("json", []byte(param), &p); err != nil {
 		return nil, err
 	}
 	if len(tem) != len(p) {
@@ -260,7 +273,7 @@ func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, 
 			return nil, errors.New("参数内容不正确")
 		}
 	}
-	return g.client.GetCodec().EnCode("json", p)
+	return g.service.GetClient().GetCodec().EnCode("json", p)
 }
 
 //logger 自定义日志输出
