@@ -3,6 +3,8 @@ package table
 const (
 	//LoginType 登录类型
 	LoginType int32 = iota
+	//BuildServiceType 编译发布服务类型
+	BuildServiceType
 )
 
 //Log 日志

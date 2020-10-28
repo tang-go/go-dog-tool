@@ -14,7 +14,6 @@ import (
 
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
-	"github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/lib/md5"
 	"github.com/tang-go/go-dog/lib/rand"
@@ -52,6 +51,12 @@ func (pointer *API) Router() {
 		true,
 		"获取角色列表",
 		pointer.GetRoleList)
+	//获取编译发布记录
+	pointer.service.GET("GetBuildServiceList", "v1", "get/build/service/list",
+		3,
+		true,
+		"获取编译发布记录",
+		pointer.GetBuildServiceList)
 	//发布服务
 	pointer.service.POST("BuildService", "v1", "build/service",
 		3,
@@ -109,6 +114,7 @@ func NewService() *API {
 		table.OwnerRole{},
 		table.Permission{},
 		table.RolePermission{},
+		table.BuildService{},
 		table.Log{},
 	)
 	//初始化缓存
@@ -230,7 +236,7 @@ func (pointer *API) Verify(id, answer string, clear bool) bool {
 	return true
 }
 
-func (pointer *API) _RunInLinux(ctx plugins.Context, token string, topic string, cmd string) error {
+func (pointer *API) _RunInLinux(cmd string, success func(string), fail func(string)) error {
 	c := exec.Command("sh", "-c", cmd)
 	stdout, err := c.StdoutPipe()
 	if err != nil {
@@ -247,34 +253,14 @@ func (pointer *API) _RunInLinux(ctx plugins.Context, token string, topic string,
 	logScan := bufio.NewScanner(stdout)
 	go func() {
 		for logScan.Scan() {
-			res := new(param.PushRes)
-			ctx.GetClient().Broadcast(
-				ctx,
-				define.SvcGateWay,
-				"Push",
-				&param.PushReq{
-					Token: token,
-					Topic: topic,
-					Msg:   logScan.Text(),
-				},
-				res)
+			success(logScan.Text())
 		}
 	}()
 	//错误
 	errScan := bufio.NewScanner(stderr)
 	go func() {
 		for errScan.Scan() {
-			res := new(param.PushRes)
-			ctx.GetClient().Broadcast(
-				ctx,
-				define.SvcGateWay,
-				"Push",
-				&param.PushReq{
-					Token: token,
-					Topic: topic,
-					Msg:   errScan.Text(),
-				},
-				res)
+			fail(errScan.Text())
 		}
 	}()
 	c.Wait()

@@ -75,8 +75,8 @@ func (g *Gateway) Run() {
 		router.POST("/api/*router", g.routerPostResolution)
 		//GET请求
 		router.GET("/api/*router", g.routerGetResolution)
-		log.Tracef("网管启动 0.0.0.0:80")
-		err := router.Run(":80")
+		log.Tracef("网管启动 0.0.0.0:8080")
+		err := router.Run(":8080")
 		if err != nil {
 			panic(err.Error())
 		}
@@ -227,6 +227,14 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
 		return
 	}
+	token := ""
+	if apiservice.Method.IsAuth {
+		token = c.Request.Header.Get("Token")
+		if token == "" {
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
+			return
+		}
+	}
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
@@ -241,6 +249,7 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	ctx.SetAddress(c.ClientIP())
 	ctx.SetIsTest(isTest)
 	ctx.SetTraceID(traceID)
+	ctx.SetToken(token)
 	ctx.SetData("URL", url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)

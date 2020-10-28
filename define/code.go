@@ -16,4 +16,8 @@ const (
 	GetAdminInfoErr = 10005
 	//GetRoleListErr 获取角色列表失败
 	GetRoleListErr = 10006
+	//BuildServiceErr 编译发布服务失败
+	BuildServiceErr = 10007
+	//GetBuildServiceListErr 获取编译发布服务失败
+	GetBuildServiceListErr = 10008
 )
