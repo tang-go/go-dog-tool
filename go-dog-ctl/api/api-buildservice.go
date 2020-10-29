@@ -102,8 +102,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 				docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
 				docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
 				rm -rf `+request.Name+`
-				echo 编译完成`,
-				func(success string) {
+				echo 编译完成`, func(success string) {
 					res := new(gateParam.PushRes)
 					ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push",
 						&gateParam.PushReq{
@@ -114,8 +113,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 						res)
 					logTxt = logTxt + success + `<p/>`
 					fmt.Println(success)
-				},
-				func(err string) {
+				}, func(err string) {
 					res := new(gateParam.PushRes)
 					ctx.GetClient().Broadcast(
 						ctx,
@@ -155,8 +153,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 				docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
 				docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
 				rm -rf `+request.Name+`
-				echo 编译完成`,
-				func(success string) {
+				echo 编译完成`, func(success string) {
 					res := new(gateParam.PushRes)
 					ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push",
 						&gateParam.PushReq{
@@ -167,8 +164,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 						res)
 					fmt.Println(success)
 					logTxt = logTxt + success + `<p/>`
-				},
-				func(err string) {
+				}, func(err string) {
 					res := new(gateParam.PushRes)
 					ctx.GetClient().Broadcast(
 						ctx,
@@ -194,5 +190,6 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 			}
 		}()
 	}
+	response.Success = true
 	return
 }

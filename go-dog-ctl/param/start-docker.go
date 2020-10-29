@@ -15,5 +15,5 @@ type Ports struct {
 
 //StartDockerRes 启动Docker响应
 type StartDockerRes struct {
-	Result string `json:"result" description:"结果" type:"string"`
+	Success bool `json:"success" description:"结果" type:"bool"`
 }

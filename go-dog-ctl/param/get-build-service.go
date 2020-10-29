@@ -30,5 +30,5 @@ type BuildService struct {
 	//执行日志
 	Log string `json:"log" description:"日志" type:"string"`
 	//注册事件
-	Time string `json:"time" description:"执行事件" type:"string"`
+	Time string `json:"time" description:"时间" type:"string"`
 }

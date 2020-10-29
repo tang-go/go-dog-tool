@@ -15,16 +15,17 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 		docker = fmt.Sprintf("%s -p %d:%d", docker, port.ExternalPort, port.InsidePort)
 	}
 	docker = fmt.Sprintf("%s %s", docker, request.Images)
-	go pointer._RunInLinux(
-		`
-		docker kill `+request.Name+`
-		docker rm `+request.Name+`
-		`+docker+`
-		`, func(success string) {
+	log.Traceln(docker)
+	// go pointer._RunInLinux(
+	// 	`
+	// 	docker kill `+request.Name+`
+	// 	docker rm `+request.Name+`
+	// 	`+docker+`
+	// 	`, func(success string) {
 
-		}, func(err string) {
+	// 	}, func(err string) {
 
-		})
-	log.Traceln(docker, response.Result)
+	// 	})
+	response.Success = true
 	return
 }

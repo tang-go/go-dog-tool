@@ -11,5 +11,5 @@ type BuildServiceReq struct {
 
 //BuildServiceRes 编译发布服务返回
 type BuildServiceRes struct {
-	Result string `json:"result" description:"结果" type:"string"`
+	Success bool `json:"success" description:"结果" type:"bool"`
 }

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	"github.com/tang-go/go-dog/cache"
@@ -63,6 +64,12 @@ func (pointer *API) Router() {
 		true,
 		"编译发布服务",
 		pointer.BuildService)
+	//获取docker运行服务
+	pointer.service.GET("GetDockerList", "v1", "get/docker/list",
+		3,
+		true,
+		"获取docker运行服务",
+		pointer.GetDockerList)
 	//docker启动服务
 	pointer.service.POST("StartDocker", "v1", "strat/docker",
 		3,
@@ -88,6 +95,7 @@ type _APIService struct {
 //API 控制服务
 type API struct {
 	service   plugins.Service
+	docker    *client.Client
 	mysql     *mysql.Mysql
 	snowflake *snowflake.SnowFlake
 	cache     *cache.Cache
@@ -97,6 +105,11 @@ type API struct {
 //NewService 初始化服务
 func NewService() *API {
 	ctl := new(API)
+	cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	ctl.docker = cli
 	//初始化rpc服务端
 	ctl.service = service.CreateService(define.SvcController)
 	//验证函数
