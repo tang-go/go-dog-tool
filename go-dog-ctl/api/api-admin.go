@@ -11,6 +11,56 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
+//GetAdminInfo 获取管理员信息
+func (pointer *API) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoReq) (response param.GetAdminInfoRes, err error) {
+	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
+	if ok == false {
+		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+		return
+	}
+	response.ID = admin.AdminID
+	response.Name = admin.Name
+	response.Avatar = "/avatar2.jpg"
+	response.Phone = admin.Phone
+	role := new(table.OwnerRole)
+	if pointer.mysql.GetReadEngine().Where("role_id = ?", admin.RoleID).First(role).RecordNotFound() == true {
+		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员权限不正确")
+		return
+	}
+	response.RoleID = role.Name
+	response.Role.ID = role.Name
+	if role.IsAdmin {
+		response.Role.Permissions = append(response.Role.Permissions, &param.Permissions{
+			RoleID:         role.Name,
+			PermissionID:   "admin",
+			PermissionName: role.Description,
+			ActionEntitySet: []*param.ActionEntitySet{
+				&param.ActionEntitySet{
+					Action:       "add",
+					Describe:     "新增",
+					DefaultCheck: true,
+				},
+				&param.ActionEntitySet{
+					Action:       "delete",
+					Describe:     "删除",
+					DefaultCheck: true,
+				},
+				&param.ActionEntitySet{
+					Action:       "update",
+					Describe:     "修改",
+					DefaultCheck: true,
+				},
+				&param.ActionEntitySet{
+					Action:       "query",
+					Describe:     "查询",
+					DefaultCheck: true,
+				},
+			},
+		})
+	}
+	return
+}
+
 //AdminLogin 管理员登录
 func (pointer *API) AdminLogin(ctx plugins.Context, request param.AdminLoginReq) (response param.AdminLoginRes, err error) {
 	//查询是否拥有此用户

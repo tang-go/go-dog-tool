@@ -34,3 +34,16 @@ type ActionEntitySet struct {
 	Describe     string `json:"describe" description:"动作描述" type:"string"`
 	DefaultCheck bool   `json:"defaultCheck" description:"是否可以操作" type:"bool"`
 }
+
+//AdminLoginReq 管理员登录
+type AdminLoginReq struct {
+	Phone string `json:"phone" description:"电话" type:"string"`
+	Pwd   string `json:"pwd" description:"密码" type:"string"`
+}
+
+//AdminLoginRes 管理员登录返回
+type AdminLoginRes struct {
+	Name    string `json:"name" description:"名称" type:"string"`
+	OwnerID int64  `json:"ownerId" description:"业主ID" type:"int64"`
+	Token   string `json:"token" description:"注册用户的token" type:"string"`
+}

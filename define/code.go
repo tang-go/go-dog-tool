@@ -20,4 +20,6 @@ const (
 	BuildServiceErr = 10007
 	//GetBuildServiceListErr 获取编译发布服务失败
 	GetBuildServiceListErr = 10008
+	//StartDockerErr 启动docker失败
+	StartDockerErr = 10009
 )

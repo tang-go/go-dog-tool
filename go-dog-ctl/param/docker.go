@@ -1,5 +1,25 @@
 package param
 
+//StartDockerReq 启动Docker请求
+type StartDockerReq struct {
+	Name    string   `json:"name" description:"服务名称" type:"string"`
+	Images  string   `json:"images" description:"镜像地址" type:"string"`
+	Account string   `json:"account" description:"账号" type:"string"`
+	Pwd     string   `json:"pwd" description:"密码" type:"string"`
+	Ports   []*Ports `json:"ports" description:"服务暴露端口" type:"[]*Ports"`
+}
+
+//Ports 暴露端口
+type Ports struct {
+	InsidePort   string `json:"insidePort" description:"内部端口" type:"string"`
+	ExternalPort string `json:"externalPort" description:"外部暴露端口" type:"string"`
+}
+
+//StartDockerRes 启动Docker响应
+type StartDockerRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
 //GetDockerListReq 获取docker列表请求
 type GetDockerListReq struct {
 }
