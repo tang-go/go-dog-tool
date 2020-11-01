@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -142,108 +143,61 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	tx.Commit()
 
 	name := strings.Replace(paths[l-1], ".git", "", -1)
-	if ok, err := pointer._PathExists(name); ok && err == nil {
-		log.Traceln("目录存在更新", name)
-		go func() {
-			logTxt := ""
-			pointer._RunInLinux(
-				`
-				cd `+name+`
-				git pull 
-				cd `+request.Path+`
-				go mod tidy
-				`+build+`
-				docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
-				docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
-				rm -rf `+request.Name+`
-				echo 编译完成`, func(success string) {
-					res := new(gateParam.PushRes)
-					ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push",
-						&gateParam.PushReq{
-							Token: ctx.GetToken(),
-							Topic: define.BuildServiceTopic,
-							Msg:   success,
-						},
-						res)
-					logTxt = logTxt + success + `<p/>`
-					fmt.Println(success)
-				}, func(err string) {
-					res := new(gateParam.PushRes)
-					ctx.GetClient().Broadcast(
-						ctx,
-						define.SvcGateWay,
-						"Push",
-						&gateParam.PushReq{
-							Token: ctx.GetToken(),
-							Topic: define.BuildServiceTopic,
-							Msg:   err,
-						},
-						res)
-					logTxt = logTxt + err + `<p/>`
-					fmt.Println(err)
-				})
-			//完成
-			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
-				map[string]interface{}{
-					"Log":    logTxt,
-					"Status": true,
-				}).Error
-			if err != nil {
-				log.Errorln(err.Error())
-			}
-		}()
-
-	} else {
-		log.Traceln("目录不存在直接下载", name)
-		go func() {
-			logTxt := ""
-			pointer._RunInLinux(
-				`
-				git clone `+request.Git+`
-				cd `+name+`
-				cd `+request.Path+`
-				go mod tidy
-				`+build+`
-				docker build -t `+request.Harbor+`/`+request.Name+`:`+request.Version+` .
-				docker push `+request.Harbor+`/`+request.Name+`:`+request.Version+` 	
-				rm -rf `+request.Name+`
-				echo 编译完成`, func(success string) {
-					res := new(gateParam.PushRes)
-					ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push",
-						&gateParam.PushReq{
-							Token: ctx.GetToken(),
-							Topic: define.BuildServiceTopic,
-							Msg:   success,
-						},
-						res)
-					fmt.Println(success)
-					logTxt = logTxt + success + `<p/>`
-				}, func(err string) {
-					res := new(gateParam.PushRes)
-					ctx.GetClient().Broadcast(
-						ctx,
-						define.SvcGateWay,
-						"Push",
-						&gateParam.PushReq{
-							Token: ctx.GetToken(),
-							Topic: define.BuildServiceTopic,
-							Msg:   err,
-						},
-						res)
-					fmt.Println(err)
-					logTxt = logTxt + err + `<p/>`
-				})
-			//完成
-			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
-				map[string]interface{}{
-					"Log":    logTxt,
-					"Status": true,
-				}).Error
-			if err != nil {
-				log.Errorln(err.Error())
-			}
-		}()
-	}
+	image := request.Harbor + `/` + request.Name + `:` + request.Version
+	shell := `
+	git clone ` + request.Git + `
+	cd ` + name + `
+	go mod tidy
+	cd ` + request.Path + `
+	` + build + `
+	tar -czvf Dockerfile.tar.gz ./*
+	`
+	go func() {
+		logTxt := ""
+		pointer._RunInLinux(shell, func(success string) {
+			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+				Token: ctx.GetToken(),
+				Topic: define.BuildServiceTopic,
+				Msg:   success,
+			}, &gateParam.PushRes{})
+			logTxt = logTxt + success + `<p/>`
+			fmt.Println(success)
+		}, func(err string) {
+			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+				Token: ctx.GetToken(),
+				Topic: define.BuildServiceTopic,
+				Msg:   err,
+			}, &gateParam.PushRes{})
+			logTxt = logTxt + err + `<p/>`
+			fmt.Println(err)
+		})
+		path := fmt.Sprintf("./%s/%s/Dockerfile.tar.gz", name, request.Path)
+		//编译镜像
+		if err := pointer.BuildImage(path, "", image); err != nil {
+			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+				Token: ctx.GetToken(),
+				Topic: define.BuildServiceTopic,
+				Msg:   err.Error(),
+			}, &gateParam.PushRes{})
+			logTxt = logTxt + err.Error() + `<p/>`
+			fmt.Println(err)
+		}
+		//删除执行文件夹
+		pointer._RunInLinux("rm -rf "+name, func(success string) {
+			fmt.Println(success)
+		}, func(err string) {
+			fmt.Println(err)
+		})
+		//完成
+		err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
+			map[string]interface{}{
+				"Log":    logTxt,
+				"Status": true,
+			}).Error
+		if err != nil {
+			log.Errorln(err.Error())
+		}
+	}()
 	response.Success = true
 	return
 }
@@ -267,17 +221,14 @@ func (pointer *API) BuildImage(tarFile, project, imageName string) error {
 	if err != nil {
 		return err
 	}
-
-	body, err := ioutil.ReadAll(output.Body)
-	if err != nil {
-		return err
-	}
-	if strings.Contains(string(body), "error") {
-		return fmt.Errorf("build image to docker error")
+	scanner := bufio.NewScanner(output.Body)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
 	}
 	return nil
 }
 
+//PushImage 推送镜像
 func PushImage(cli *client.Client, registryUser, registryPassword, image string) error {
 	authConfig := types.AuthConfig{
 		Username: registryUser,

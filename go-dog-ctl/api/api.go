@@ -105,7 +105,8 @@ type API struct {
 //NewService 初始化服务
 func NewService() *API {
 	ctl := new(API)
-	cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
+	//cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
+	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
 	if err != nil {
 		panic(err.Error())
 	}
