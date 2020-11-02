@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -175,8 +174,8 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 		c.JSON(http.StatusOK, e)
 		return
 	}
-	resp := new(interface{})
-	g.service.GetClient().GetCodec().DeCode("json", back, resp)
+	resp := make(map[string]interface{})
+	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
 	c.JSON(http.StatusOK, gin.H{
 		"code": define.SuccessCode,
 		"body": resp,
@@ -258,8 +257,8 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 		c.JSON(http.StatusOK, e)
 		return
 	}
-	resp := new(interface{})
-	g.service.GetClient().GetCodec().DeCode("json", back, resp)
+	resp := make(map[string]interface{})
+	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
 	c.JSON(http.StatusOK, gin.H{
 		"code": define.SuccessCode,
 		"body": resp,
@@ -278,7 +277,8 @@ func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, 
 		return nil, errors.New("参数不正确")
 	}
 	for key := range p {
-		if _, ok := tem[strings.ToLower(key)]; !ok {
+		if _, ok := tem[key]; !ok {
+			log.Traceln("模版", tem, "传入参数", p)
 			return nil, errors.New("参数内容不正确")
 		}
 	}

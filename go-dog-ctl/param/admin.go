@@ -6,7 +6,7 @@ type GetAdminInfoReq struct {
 
 //GetAdminInfoRes 获取用户信息返回
 type GetAdminInfoRes struct {
-	ID     int64  `json:"id" description:"用户ID" type:"int64"`
+	ID     string `json:"id" description:"用户ID" type:"string"`
 	Name   string `json:"name" description:"名称" type:"string"`
 	Avatar string `json:"avatar" description:"头像" type:"string"`
 	Phone  string `json:"phone" description:"电话" type:"string"`
@@ -44,6 +44,6 @@ type AdminLoginReq struct {
 //AdminLoginRes 管理员登录返回
 type AdminLoginRes struct {
 	Name    string `json:"name" description:"名称" type:"string"`
-	OwnerID int64  `json:"ownerId" description:"业主ID" type:"int64"`
+	OwnerID string `json:"ownerId" description:"业主ID" type:"string"`
 	Token   string `json:"token" description:"注册用户的token" type:"string"`
 }

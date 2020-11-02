@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -19,6 +20,66 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
+//DelDocker 删除镜像
+func (pointer *API) DelDocker(ctx plugins.Context, request param.DelDockerReq) (response param.DelDockerRes, err error) {
+	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
+	if ok == false {
+		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+		return
+	}
+	docker := new(table.Docker)
+	if pointer.mysql.GetReadEngine().Where("id = ?", request.DockerID).First(docker).RecordNotFound() == true {
+		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		return
+	}
+	if admin.OwnerID != docker.OwnerID {
+		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		return
+	}
+	//删除
+	name := fmt.Sprintf("%d-%s", admin.OwnerID, docker.Name)
+	pointer._CloseDocker(name)
+	if e := pointer.mysql.GetWriteEngine().Delete(docker).Error; e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.DelDockerErr, "删除失败")
+		return
+	}
+	response.Success = true
+	return
+}
+
+//RestartDocker 重启镜像
+func (pointer *API) RestartDocker(ctx plugins.Context, request param.RestartDockerReq) (response param.RestartDockerRes, err error) {
+	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
+	if ok == false {
+		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+		return
+	}
+	docker := new(table.Docker)
+	if pointer.mysql.GetReadEngine().Where("id = ?", request.DockerID).First(docker).RecordNotFound() == true {
+		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		return
+	}
+	if admin.OwnerID != docker.OwnerID {
+		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		return
+	}
+	param := param.StartDockerReq{
+		Name:    docker.Name,
+		Images:  docker.Image,
+		Account: docker.Account,
+		Pwd:     docker.Pwd,
+	}
+	json.Unmarshal([]byte(docker.Ports), &param.Ports)
+	res, e := pointer.StartDocker(ctx, param)
+	if e != nil {
+		err = customerror.EnCodeError(define.DelDockerErr, e.Error())
+		return
+	}
+	response.Success = res.Success
+	return
+}
+
 //StartDocker 以docker模式启动docker
 func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerReq) (response param.StartDockerRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
@@ -26,10 +87,7 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}
-	if pointer.mysql.GetReadEngine().Where("name = ? AND owner_id = ?", request.Name, admin.OwnerID).First(&table.Docker{}).RecordNotFound() == false {
-		err = customerror.EnCodeError(define.StartDockerErr, "已经存在次名称服务")
-		return
-	}
+	//重启
 	name := fmt.Sprintf("%d-%s", admin.OwnerID, request.Name)
 	pointer._CloseDocker(name)
 	go func() {
@@ -91,27 +149,32 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 			Msg:   "启动成功",
 		}, &gateParam.PushRes{})
 
-		//添加记录
-		docker := &table.Docker{
-			//唯一主键
-			ID: pointer.snowflake.GetID(),
-			//Name
-			Name: request.Name,
-			//编译发布的管理员
-			AdminID: admin.AdminID,
-			//发布镜像
-			Image: request.Images,
-			//账号
-			Account: request.Account,
-			//密码
-			Pwd: request.Pwd,
-			//业主ID
-			OwnerID: admin.OwnerID,
-			//注册事件
-			Time: time.Now().Unix(),
-		}
-		if e := pointer.mysql.GetWriteEngine().Create(&docker).Error; e != nil {
-			log.Errorln(e.Error())
+		if pointer.mysql.GetReadEngine().Where("name = ? AND owner_id = ?", request.Name, admin.OwnerID).First(&table.Docker{}).RecordNotFound() == true {
+			ps, _ := json.Marshal(request.Ports)
+			//添加记录
+			docker := &table.Docker{
+				//唯一主键
+				ID: pointer.snowflake.GetID(),
+				//Name
+				Name: request.Name,
+				//编译发布的管理员
+				AdminID: admin.AdminID,
+				//发布镜像
+				Image: request.Images,
+				//账号
+				Account: request.Account,
+				//密码
+				Pwd: request.Pwd,
+				//端口
+				Ports: string(ps),
+				//业主ID
+				OwnerID: admin.OwnerID,
+				//注册事件
+				Time: time.Now().Unix(),
+			}
+			if e := pointer.mysql.GetWriteEngine().Create(&docker).Error; e != nil {
+				log.Errorln(e.Error())
+			}
 		}
 	}()
 	//生成登录记录
@@ -216,38 +279,36 @@ func (pointer *API) GetDockerList(ctx plugins.Context, request param.GetDockerLi
 		}
 		name := names[index+1:]
 		mp[name] = container
-		// p := ""
-		// for _, port := range container.Ports {
-		// 	p = fmt.Sprintf("%s -p %d:%d/%s", p, port.PublicPort, port.PrivatePort, port.Type)
-		// }
 	}
 
 	total := len(dockers)
 	response.PageNo = 1
 	response.PageSize = total
+	response.TotalCount = total
+	if total <= 0 {
+		response.TotalPage = 0
+		return
+	}
 	if total%response.PageSize > 0 {
 		response.TotalPage = total/response.PageSize + 1
 	}
 	if total%response.PageSize < 0 {
 		response.TotalPage = total / response.PageSize
 	}
-	response.TotalCount = total
-
 	for _, docker := range dockers {
 		d := param.Docker{
-			Name:    docker.Name,
-			AdminID: admin.AdminID,
-			Image:   docker.Image,
-			OwnerID: admin.OwnerID,
-			Time: time.Unix(docker.Time, 0).Format("2006-01-02 15:04:05"),
+			DockerID: strconv.FormatInt(docker.ID, 10),
+			Name:     docker.Name,
+			Image:    docker.Image,
+			Time:     time.Unix(docker.Time, 0).Format("2006-01-02 15:04:05"),
 		}
 		container, ok := mp[docker.Name]
 		if ok {
-
+			d.RunStatus = true
+			d.ID = container.ID
+			d.Status = container.Status
+			d.Command = container.Command
 		}
-		d.ID = container.ID
-		d.Status = container.Status
-		d.Command = container.Command
 		p := ""
 		for _, port := range container.Ports {
 			p = fmt.Sprintf("%s -p %d:%d/%s", p, port.PublicPort, port.PrivatePort, port.Type)
@@ -255,5 +316,6 @@ func (pointer *API) GetDockerList(ctx plugins.Context, request param.GetDockerLi
 		d.Ports = p
 		response.Data = append(response.Data, d)
 	}
+	fmt.Println(response.Data)
 	return
 }

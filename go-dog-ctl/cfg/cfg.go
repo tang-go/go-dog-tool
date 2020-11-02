@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/tang-go/go-dog/lib/net"
+	"github.com/tang-go/go-dog/pkg/config"
 
 	"github.com/sipt/GoJsoner"
 )
@@ -18,11 +19,15 @@ var (
 )
 
 func init() {
-	flag.StringVar(&configpath, "config", "./config/config.json", "config配置路径")
+	flag.StringVar(&configpath, "c", "./config/config.json", "config配置路径")
 }
 
 //Config 配置
 type Config struct {
+	//管理员账号
+	Phone string `json:"phone"`
+	//管理员密码
+	Pwd string `json:"pwd"`
 	//服务名称
 	ServerName string `json:"server_name"`
 	//服务说明
@@ -46,33 +51,23 @@ type Config struct {
 	//Jaeger 链路追踪地址
 	Jaeger string `json:"jaeger"`
 	//读数据库地址
-	ReadMysql *MysqlCfg `json:"read_mysql"`
+	ReadMysql *config.MysqlCfg `json:"read_mysql"`
 	//写数据库地址
-	WriteMysql *MysqlCfg `json:"write_mysql"`
+	WriteMysql *config.MysqlCfg `json:"write_mysql"`
 	//本机地址
 	Host string `json:"host"`
 	//运行日志等级 panic fatal error warn info debug trace
 	Runmode string `json:"runmode"`
 }
 
-//MysqlCfg mysql配置
-type MysqlCfg struct {
-	//数据库地址
-	DbIP string `json:"db_ip"`
-	//数据库密码
-	DbPWd string `json:"db_pwd"`
-	//数据库名称
-	DbName string `json:"db_name"`
-	//数据库用户
-	DbUser string `json:"db_user"`
-	//最大空闲连接数
-	MaxIdleConns int `json:"max_idle_conns"`
-	//最大连接数
-	MaxOpenConns int `json:"max_open_conns"`
-	//链接可重用时间
-	ConnMaxLifetime int `json:"conn_max_lifetime"`
-	//日志开关
-	OpenLog bool `json:"open_log"`
+//GetPhone 管理员账号
+func (c *Config) GetPhone() string {
+	return c.Phone
+}
+
+//GetPwd 管理员密码
+func (c *Config) GetPwd() string {
+	return c.Pwd
 }
 
 //GetServerName 获取服务名称
@@ -121,12 +116,12 @@ func (c *Config) GetNsq() []string {
 }
 
 //GetReadMysql 获取ReadMysql地址
-func (c *Config) GetReadMysql() *MysqlCfg {
+func (c *Config) GetReadMysql() *config.MysqlCfg {
 	return c.ReadMysql
 }
 
 //GetWriteMysql 获取GetWriteMysql地址
-func (c *Config) GetWriteMysql() *MysqlCfg {
+func (c *Config) GetWriteMysql() *config.MysqlCfg {
 	return c.WriteMysql
 }
 
@@ -214,6 +209,8 @@ func NewConfig() *Config {
 	fmt.Println("*                                              *")
 	fmt.Println("************************************************")
 	fmt.Println("### ServerName:   ", c.ServerName)
+	fmt.Println("### Phone:        ", c.Phone)
+	fmt.Println("### Pwd:          ", c.Pwd)
 	fmt.Println("### Port:         ", c.Port)
 	fmt.Println("### Discovery:    ", c.Discovery)
 	fmt.Println("### Redis:        ", c.Redis)

@@ -1,5 +1,25 @@
 package param
 
+//DelDockerReq 删除镜像请求
+type DelDockerReq struct {
+	DockerID string `json:"dockerId" description:"ID" type:"string"`
+}
+
+//DelDockerRes 删除镜像响应
+type DelDockerRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
+//RestartDockerReq 重启镜像请求
+type RestartDockerReq struct {
+	DockerID string `json:"dockerId" description:"ID" type:"string"`
+}
+
+//RestartDockerRes 重启镜像响应
+type RestartDockerRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
 //CloseDockerReq 关闭docker镜像
 type CloseDockerReq struct {
 	ID string `json:"id" description:"镜像ID" type:"string"`
@@ -45,18 +65,18 @@ type GetDockerListRes struct {
 
 //Docker 发布记录
 type Docker struct {
-	//唯一主键
+	//容器ID
 	ID string `json:"id" description:"id" type:"string"`
+	//ID
+	DockerID string `json:"dockerId" description:"id" type:"string"`
 	//名称
 	Name string `json:"name" description:"名称" type:"string"`
-	//编译发布的管理员
-	AdminID int64 `json:"adminId" description:"管理员ID" type:"int64"`
 	//发布镜像
 	Image string `json:"image" description:"发布镜像" type:"string"`
 	//状态
+	RunStatus bool `json:"runStatus" description:"允许状态" type:"bool"`
+	//状态
 	Status string `json:"status" description:"状态" type:"string"`
-	//业主ID
-	OwnerID int64 `json:"ownerId" description:"业主ID" type:"int64"`
 	//执行命令
 	Command string `json:"command" description:"执行命令" type:"string"`
 	//端口

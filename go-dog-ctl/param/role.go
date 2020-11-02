@@ -18,15 +18,13 @@ type GetRoleListRes struct {
 //RoleInfo 角色信息
 type RoleInfo struct {
 	//角色ID
-	RoleID int64 `json:"roleId" description:"角色ID" type:"int64"`
+	RoleID string `json:"roleId" description:"角色ID" type:"string"`
 	//角色名称
 	Name string `json:"name" description:"角色名称" type:"string"`
 	//角色描述
 	Description string `json:"description" description:"角色描述" type:"string"`
 	//是否为超级管理员
 	IsAdmin bool `json:"isAdmin" description:"是否为超级管理员" type:"bool"`
-	//业主ID
-	OwnerID int64 `json:"ownerId" description:"业主ID" type:"int64"`
 	//角色创建时间
 	Time string `json:"time" description:"创建时间" type:"string"`
 }

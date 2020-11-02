@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,17 +46,13 @@ func (pointer *API) GetBuildServiceList(ctx plugins.Context, request param.GetBu
 	for _, build := range builds {
 		response.Data = append(response.Data, param.BuildService{
 			//唯一主键
-			ID: build.ID,
-			//编译发布的管理员
-			AdminID: build.AdminID,
+			ID: strconv.FormatInt(build.ID, 10),
 			//发布镜像
 			Image: build.Image,
 			//状态
 			Status: build.Status,
 			//执行日志
 			Log: build.Log,
-			//业主ID
-			OwnerID: build.OwnerID,
 			//角色创建时间
 			Time: time.Unix(build.Time, 0).Format("2006-01-02 15:04:05"),
 		})
@@ -208,6 +205,12 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 				logTxt = logTxt + e.Error() + `<p/>`
 			}
 		}
+		ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+			Token: ctx.GetToken(),
+			Topic: define.BuildServiceTopic,
+			Msg:   "执行完成",
+		}, &gateParam.PushRes{})
+		logTxt = logTxt + "执行完成" + `<p/>`
 		//完成
 		err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
 			map[string]interface{}{

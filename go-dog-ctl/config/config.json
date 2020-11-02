@@ -3,6 +3,10 @@
   "server_name": "go-dog-ctl",
   //说明
   "explain": "控制服务",
+  //账号
+  "phone":"13688460148",
+  //密码
+  "pwd":"admin",
   //服务发现
   "discovery": [
     "192.168.0.35:4343",

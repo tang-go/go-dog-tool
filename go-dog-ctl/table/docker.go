@@ -14,6 +14,8 @@ type Docker struct {
 	Account string
 	//密码
 	Pwd string
+	//端口
+	Ports string
 	//业主ID
 	OwnerID int64
 	//注册事件

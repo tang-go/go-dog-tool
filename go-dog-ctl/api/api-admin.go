@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/tang-go/go-dog-tool/define"
@@ -18,7 +19,7 @@ func (pointer *API) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfo
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}
-	response.ID = admin.AdminID
+	response.ID = strconv.FormatInt(admin.AdminID, 10)
 	response.Name = admin.Name
 	response.Avatar = "/avatar2.jpg"
 	response.Phone = admin.Phone
@@ -107,7 +108,7 @@ func (pointer *API) AdminLogin(ctx plugins.Context, request param.AdminLoginReq)
 	pointer.cache.GetCache().SetByTime(token, admin, define.AdminTokenValidityTime)
 	//登录成功返回
 	response.Name = admin.Name
-	response.OwnerID = admin.OwnerID
+	response.OwnerID = strconv.FormatInt(admin.OwnerID, 10)
 	response.Token = token
 	return
 }

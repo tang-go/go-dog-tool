@@ -24,4 +24,8 @@ const (
 	StartDockerErr = 10009
 	//CloseDockerErr 关闭docker失败
 	CloseDockerErr = 10010
+	//DelDockerErr 删除失败
+	DelDockerErr = 10011
+	//RestartDockerErr 重启失败
+	RestartDockerErr = 10012
 )

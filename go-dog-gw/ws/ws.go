@@ -17,7 +17,7 @@ import (
 var wsupgrader = websocket.Upgrader{
 	ReadBufferSize:   1024,
 	WriteBufferSize:  1024,
-	HandshakeTimeout: 5 * time.Second,
+	HandshakeTimeout: 10 * time.Second,
 	// 取消ws跨域校验
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -95,7 +95,7 @@ func newclient(token string, conn *websocket.Conn) *client {
 
 func (c *client) run() {
 	for {
-		_, err := c.read(c.conn, time.Now().Add(time.Second*5))
+		_, err := c.read(c.conn, time.Now().Add(time.Second*10))
 		if err != nil {
 			c.conn.Close()
 			log.Errorln(err.Error())
@@ -118,7 +118,7 @@ func (c *client) read(conn *websocket.Conn, t time.Time) ([]byte, error) {
 }
 
 func (c *client) push(message []byte) {
-	c.write(c.conn, message, time.Now().Add(time.Second*5))
+	c.write(c.conn, message, time.Now().Add(time.Second*10))
 }
 
 func (c *client) write(conn *websocket.Conn, message []byte, t time.Time) error {

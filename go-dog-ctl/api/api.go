@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
+	"github.com/tang-go/go-dog-tool/go-dog-ctl/cfg"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/lib/md5"
@@ -90,6 +91,18 @@ func (pointer *API) Router() {
 		true,
 		"关闭docker服务",
 		pointer.CloseDocker)
+	//删除docker服务
+	pointer.service.POST("DelDocker", "v1", "del/docker",
+		3,
+		true,
+		"删除docker服务",
+		pointer.DelDocker)
+	//删除docker服务
+	pointer.service.POST("RestartDocker", "v1", "restart/docker",
+		3,
+		true,
+		"重启docker服务",
+		pointer.RestartDocker)
 	//获取服务列表
 	pointer.service.GET("GetServiceList", "v1", "get/service/list",
 		3,
@@ -109,6 +122,7 @@ type _APIService struct {
 //API 控制服务
 type API struct {
 	service   plugins.Service
+	cfg       *cfg.Config
 	docker    *client.Client
 	mysql     *mysql.Mysql
 	snowflake *snowflake.SnowFlake
@@ -119,6 +133,7 @@ type API struct {
 //NewService 初始化服务
 func NewService() *API {
 	ctl := new(API)
+	ctl.cfg = cfg.NewConfig()
 	//cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
 	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
 	if err != nil {
@@ -126,7 +141,7 @@ func NewService() *API {
 	}
 	ctl.docker = cli
 	//初始化rpc服务端
-	ctl.service = service.CreateService(define.SvcController)
+	ctl.service = service.CreateService(define.SvcController, ctl.cfg)
 	//验证函数
 	ctl.service.Auth(ctl.Auth)
 	//设置服务端最大访问量
@@ -134,7 +149,7 @@ func NewService() *API {
 	//设置客户端最大访问量
 	ctl.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
 	//初始化数据库
-	ctl.mysql = mysql.NewMysql(ctl.service.GetCfg())
+	ctl.mysql = mysql.NewMysql(ctl.cfg)
 	//初始化数据库表
 	ctl.mysql.GetWriteEngine().AutoMigrate(
 		table.Admin{},
@@ -143,14 +158,15 @@ func NewService() *API {
 		table.Permission{},
 		table.RolePermission{},
 		table.BuildService{},
+		table.Docker{},
 		table.Log{},
 	)
 	//初始化缓存
-	ctl.cache = cache.NewCache(ctl.service.GetCfg())
+	ctl.cache = cache.NewCache(ctl.cfg)
 	//初始化雪花算法
 	ret := big.NewInt(0)
-	ret.SetBytes(net.ParseIP(ctl.service.GetCfg().GetHost()).To4())
-	id, err := strconv.ParseInt(fmt.Sprintf("%d%d", ret.Int64(), ctl.service.GetCfg().GetPort()), 10, 64)
+	ret.SetBytes(net.ParseIP(ctl.cfg.GetHost()).To4())
+	id, err := strconv.ParseInt(fmt.Sprintf("%d%d", ret.Int64(), ctl.cfg.GetPort()), 10, 64)
 	if err != nil {
 		panic(err)
 	}
@@ -158,7 +174,7 @@ func NewService() *API {
 	//初始化API
 	ctl.Router()
 	//初始化数据库数据
-	ctl._InitMysql("13688460148", "admin")
+	ctl._InitMysql(ctl.cfg.GetPhone(), ctl.cfg.GetPwd())
 	return ctl
 }
 
@@ -378,7 +394,7 @@ func (pointer *API) _PushImage(registryUser, registryPassword, image string, suc
 //PushImage 推送镜像
 func (pointer *API) _PullImage(registryUser, registryPassword, image string, success func(string)) error {
 	config := types.ImagePullOptions{}
-	if registryUser != "" || registryPassword !="" {
+	if registryUser != "" || registryPassword != "" {
 		authConfig := types.AuthConfig{
 			Username: registryUser,
 			Password: registryPassword,

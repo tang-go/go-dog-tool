@@ -3,6 +3,10 @@
   "server_name": "controller",
   //说明
   "explain": "控制中心",
+   //账号
+   "phone":"13688460148",
+   //密码
+   "pwd":"admin",
   //服务发现
   "discovery": [
     "127.0.0.1:4343"

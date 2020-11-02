@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/tang-go/go-dog-tool/define"
@@ -40,15 +41,13 @@ func (pointer *API) GetRoleList(ctx plugins.Context, request param.GetRoleListRe
 	for _, role := range roles {
 		response.Data = append(response.Data, param.RoleInfo{
 			//角色ID
-			RoleID: role.RoleID,
+			RoleID: strconv.FormatInt(role.RoleID, 10),
 			//角色名称
 			Name: role.Name,
 			//角色描述
 			Description: role.Description,
 			//是否为超级管理员
 			IsAdmin: role.IsAdmin,
-			//业主ID
-			OwnerID: role.OwnerID,
 			//角色创建时间
 			Time: time.Unix(role.Time, 0).Format("2006-01-02 15:04:05"),
 		})

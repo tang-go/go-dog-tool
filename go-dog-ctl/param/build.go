@@ -34,15 +34,11 @@ type GetBuildServiceRes struct {
 //BuildService 发布记录
 type BuildService struct {
 	//唯一主键
-	ID int64 `json:"id" description:"唯一主键" type:"int64"`
-	//编译发布的管理员
-	AdminID int64 `json:"adminId" description:"管理员ID" type:"int64"`
+	ID string `json:"id" description:"唯一主键" type:"string"`
 	//发布镜像
 	Image string `json:"image" description:"发布镜像" type:"string"`
 	//状态
 	Status bool `json:"status" description:"状态" type:"bool"`
-	//业主ID
-	OwnerID int64 `json:"ownerId" description:"业主ID" type:"int64"`
 	//执行日志
 	Log string `json:"log" description:"日志" type:"string"`
 	//注册事件
