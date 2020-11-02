@@ -5,6 +5,10 @@ const (
 	LoginType int32 = iota
 	//BuildServiceType 编译发布服务类型
 	BuildServiceType
+	//CloseDockerType 关闭docker服务
+	CloseDockerType
+	//StartDockerType 启动docker服务
+	StartDockerType
 )
 
 //Log 日志

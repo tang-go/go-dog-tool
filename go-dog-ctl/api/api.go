@@ -1,17 +1,25 @@
 package api
 
 import (
+	"archive/tar"
 	"bufio"
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
@@ -76,6 +84,12 @@ func (pointer *API) Router() {
 		true,
 		"docker方式启动服务",
 		pointer.StartDocker)
+	//docker 关闭
+	pointer.service.POST("CloseDocker", "v1", "clsoe/docker",
+		3,
+		true,
+		"关闭docker服务",
+		pointer.CloseDocker)
 	//获取服务列表
 	pointer.service.GET("GetServiceList", "v1", "get/service/list",
 		3,
@@ -267,14 +281,18 @@ func (pointer *API) _RunInLinux(cmd string, success func(string), fail func(stri
 	logScan := bufio.NewScanner(stdout)
 	go func() {
 		for logScan.Scan() {
-			success(logScan.Text())
+			if success != nil {
+				success(logScan.Text())
+			}
 		}
 	}()
 	//错误
 	errScan := bufio.NewScanner(stderr)
 	go func() {
 		for errScan.Scan() {
-			fail(errScan.Text())
+			if fail != nil {
+				fail(errScan.Text())
+			}
 		}
 	}()
 	c.Wait()
@@ -290,4 +308,186 @@ func (pointer *API) _PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+//BuildImage 编译镜像
+func (pointer *API) _BuildImage(tarFile, project, imageName string, success func(string)) error {
+	dockerBuildContext, err := os.Open(tarFile)
+	if err != nil {
+		return err
+	}
+	defer dockerBuildContext.Close()
+
+	buildOptions := types.ImageBuildOptions{
+		Dockerfile: "Dockerfile", // optional, is the default
+		Tags:       []string{imageName},
+		Labels: map[string]string{
+			project: "project",
+		},
+	}
+	output, err := pointer.docker.ImageBuild(context.Background(), dockerBuildContext, buildOptions)
+	if err != nil {
+		return err
+	}
+	scanner := bufio.NewScanner(output.Body)
+	for scanner.Scan() {
+		success(scanner.Text())
+	}
+	return nil
+}
+
+//_CloseDocker 关闭镜像
+func (pointer *API) _CloseDocker(id string) error {
+	err := pointer.docker.ContainerStop(context.TODO(), id, nil)
+	if err != nil {
+		return err
+	}
+	err = pointer.docker.ContainerRemove(context.TODO(), id, types.ContainerRemoveOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//PushImage 推送镜像
+func (pointer *API) _PushImage(registryUser, registryPassword, image string, success func(string)) error {
+	config := types.ImagePushOptions{}
+	if len(registryUser) > 0 || len(registryPassword) > 0 {
+		authConfig := types.AuthConfig{
+			Username: registryUser,
+			Password: registryPassword,
+		}
+		encodedJSON, err := json.Marshal(authConfig)
+		if err != nil {
+			return err
+		}
+		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+		config.RegistryAuth = authStr
+	}
+	out, err := pointer.docker.ImagePush(context.TODO(), image, config)
+	if err != nil {
+		return err
+	}
+	scanner := bufio.NewScanner(out)
+	for scanner.Scan() {
+		success(scanner.Text())
+	}
+	return nil
+}
+
+//PushImage 推送镜像
+func (pointer *API) _PullImage(registryUser, registryPassword, image string, success func(string)) error {
+	config := types.ImagePullOptions{}
+	if registryUser != "" || registryPassword !="" {
+		authConfig := types.AuthConfig{
+			Username: registryUser,
+			Password: registryPassword,
+		}
+		encodedJSON, err := json.Marshal(authConfig)
+		if err != nil {
+			return err
+		}
+		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+		config.RegistryAuth = authStr
+	}
+	out, err := pointer.docker.ImagePull(context.TODO(), image, config)
+	if err != nil {
+		return err
+	}
+	scanner := bufio.NewScanner(out)
+	for scanner.Scan() {
+		success(scanner.Text())
+	}
+	return nil
+}
+
+// 打包tar
+func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool) error {
+	tarfile, err := os.Create(filetarget)
+	if err != nil {
+		if err == os.ErrExist {
+			if err := os.Remove(filetarget); err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+		} else {
+			log.Errorln(err.Error())
+			return err
+		}
+	}
+	defer tarfile.Close()
+	tarwriter := tar.NewWriter(tarfile)
+
+	files, _ := ioutil.ReadDir(filesource)
+	for _, f := range files {
+		path := filesource + "/" + f.Name()
+		sfileInfo, err := os.Stat(path)
+		if err != nil {
+			log.Errorln(err.Error())
+			return err
+		}
+		if !sfileInfo.IsDir() {
+			if err := pointer._TarFile(f.Name(), path, sfileInfo, tarwriter); err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+		} else {
+			if err := pointer._TarFolder(path, tarwriter); err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (pointer *API) _TarFile(directory string, filesource string, sfileInfo os.FileInfo, tarwriter *tar.Writer) error {
+	sfile, err := os.Open(filesource)
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+	defer sfile.Close()
+	header, err := tar.FileInfoHeader(sfileInfo, "")
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+	header.Name = directory
+	err = tarwriter.WriteHeader(header)
+	if err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+	if _, err = io.Copy(tarwriter, sfile); err != nil {
+		log.Errorln(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (pointer *API) _TarFolder(directory string, tarwriter *tar.Writer) error {
+	baseFolder := filepath.Base(directory)
+	return filepath.Walk(directory, func(targetpath string, file os.FileInfo, err error) error {
+		if file == nil {
+			log.Errorln(err.Error())
+			return err
+		}
+		if file.IsDir() {
+			header, err := tar.FileInfoHeader(file, "")
+			if err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+			header.Name = filepath.Join(baseFolder, strings.TrimPrefix(targetpath, directory))
+			if err = tarwriter.WriteHeader(header); err != nil {
+				log.Errorln(err.Error())
+				return err
+			}
+			os.Mkdir(strings.TrimPrefix(baseFolder, file.Name()), os.ModeDir)
+			return nil
+		}
+		fileFolder := baseFolder + "/" + file.Name()
+		return pointer._TarFile(fileFolder, targetpath, file, tarwriter)
+	})
 }

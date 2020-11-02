@@ -1,5 +1,15 @@
 package param
 
+//CloseDockerReq 关闭docker镜像
+type CloseDockerReq struct {
+	ID string `json:"id" description:"镜像ID" type:"string"`
+}
+
+//CloseDockerRes 关闭docker容器返回
+type CloseDockerRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
 //StartDockerReq 启动Docker请求
 type StartDockerReq struct {
 	Name    string   `json:"name" description:"服务名称" type:"string"`

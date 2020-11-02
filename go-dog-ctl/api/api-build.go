@@ -1,24 +1,17 @@
 package api
 
 import (
-	"bufio"
-	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	customerror "github.com/tang-go/go-dog/error"
+	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
 )
@@ -149,9 +142,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	cd ` + name + `
 	go mod tidy
 	cd ` + request.Path + `
-	` + build + `
-	tar -czvf Dockerfile.tar.gz ./*
-	`
+	` + build
 	go func() {
 		logTxt := ""
 		pointer._RunInLinux(shell, func(success string) {
@@ -171,23 +162,52 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 			logTxt = logTxt + err + `<p/>`
 			fmt.Println(err)
 		})
-		path := fmt.Sprintf("./%s/%s/Dockerfile.tar.gz", name, request.Path)
-		//编译镜像
-		if err := pointer.BuildImage(path, "", image); err != nil {
+		path := fmt.Sprintf("./%s/%s", name, request.Path)
+		tarName := uuid.GetToken() + ".tar"
+		//打包
+		if e := pointer._CreateTar(path, tarName, false); e != nil {
 			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
 				Token: ctx.GetToken(),
 				Topic: define.BuildServiceTopic,
-				Msg:   err.Error(),
+				Msg:   e.Error(),
 			}, &gateParam.PushRes{})
-			logTxt = logTxt + err.Error() + `<p/>`
-			fmt.Println(err)
+			logTxt = logTxt + e.Error() + `<p/>`
+		} else {
+			//编译镜像
+			if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
+				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+					Token: ctx.GetToken(),
+					Topic: define.BuildServiceTopic,
+					Msg:   res,
+				}, &gateParam.PushRes{})
+				logTxt = logTxt + res + `<p/>`
+			}); err != nil {
+				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+					Token: ctx.GetToken(),
+					Topic: define.BuildServiceTopic,
+					Msg:   err.Error(),
+				}, &gateParam.PushRes{})
+				logTxt = logTxt + err.Error() + `<p/>`
+			}
+			//删除执行文件夹
+			pointer._RunInLinux("rm -rf "+name+" "+tarName, nil, nil)
+			//执行push
+			if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
+				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+					Token: ctx.GetToken(),
+					Topic: define.BuildServiceTopic,
+					Msg:   res,
+				}, &gateParam.PushRes{})
+				logTxt = logTxt + res + `<p/>`
+			}); e != nil {
+				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
+					Token: ctx.GetToken(),
+					Topic: define.BuildServiceTopic,
+					Msg:   e.Error(),
+				}, &gateParam.PushRes{})
+				logTxt = logTxt + e.Error() + `<p/>`
+			}
 		}
-		//删除执行文件夹
-		pointer._RunInLinux("rm -rf "+name, func(success string) {
-			fmt.Println(success)
-		}, func(err string) {
-			fmt.Println(err)
-		})
 		//完成
 		err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
 			map[string]interface{}{
@@ -200,56 +220,4 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	}()
 	response.Success = true
 	return
-}
-
-//BuildImage 编译镜像
-func (pointer *API) BuildImage(tarFile, project, imageName string) error {
-	dockerBuildContext, err := os.Open(tarFile)
-	if err != nil {
-		return err
-	}
-	defer dockerBuildContext.Close()
-
-	buildOptions := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile", // optional, is the default
-		Tags:       []string{imageName},
-		Labels: map[string]string{
-			project: "project",
-		},
-	}
-	output, err := pointer.docker.ImageBuild(context.Background(), dockerBuildContext, buildOptions)
-	if err != nil {
-		return err
-	}
-	scanner := bufio.NewScanner(output.Body)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
-	return nil
-}
-
-//PushImage 推送镜像
-func PushImage(cli *client.Client, registryUser, registryPassword, image string) error {
-	authConfig := types.AuthConfig{
-		Username: registryUser,
-		Password: registryPassword,
-	}
-	encodedJSON, err := json.Marshal(authConfig)
-	if err != nil {
-		return err
-	}
-	authStr := base64.URLEncoding.EncodeToString(encodedJSON)
-	out, err := cli.ImagePush(context.TODO(), image, types.ImagePushOptions{RegistryAuth: authStr})
-	if err != nil {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(out)
-	if err != nil {
-		return err
-	}
-	if strings.Contains(string(body), "error") {
-		return fmt.Errorf("push image to docker error")
-	}
-	return nil
 }

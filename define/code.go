@@ -22,4 +22,6 @@ const (
 	GetBuildServiceListErr = 10008
 	//StartDockerErr 启动docker失败
 	StartDockerErr = 10009
+	//CloseDockerErr 关闭docker失败
+	CloseDockerErr = 10010
 )

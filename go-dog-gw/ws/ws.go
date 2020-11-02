@@ -56,7 +56,7 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 	}
 	info := new(interface{})
 	if e := pointer.cache.GetCache().Get(token, info); e != nil {
-		log.Errorln(err.Error())
+		log.Errorln(e.Error())
 		return
 	}
 	log.Tracef("玩家上线 | %s |", token)
