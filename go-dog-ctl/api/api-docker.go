@@ -316,6 +316,5 @@ func (pointer *API) GetDockerList(ctx plugins.Context, request param.GetDockerLi
 		d.Ports = p
 		response.Data = append(response.Data, d)
 	}
-	fmt.Println(response.Data)
 	return
 }
