@@ -75,14 +75,14 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	}
 	system := runtime.GOOS
 	build := ""
+	log.Traceln("当前系统环境", system)
 	switch system {
 	case "darwin":
 		build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 	case "linxu":
 		build = "go build -o " + request.Name
 	default:
-		err = customerror.EnCodeError(define.BuildServiceErr, "目前只支持linux和mac")
-		return
+		build = "go build -o " + request.Name
 	}
 	//添加编译记录
 	tbBuild := table.BuildService{
