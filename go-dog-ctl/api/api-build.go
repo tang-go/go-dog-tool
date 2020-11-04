@@ -82,7 +82,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	case "linxu":
 		build = "go build -o " + request.Name
 	default:
-		build = "go build -o " + request.Name
+		build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 	}
 	//添加编译记录
 	tbBuild := table.BuildService{
