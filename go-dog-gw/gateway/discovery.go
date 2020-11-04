@@ -183,12 +183,14 @@ func (d *GoDogDiscovery) _Watch() {
 						continue
 					}
 					d.rpcdata[data.Key] = info
+					log.Tracef("rpc 上线 | %s | %s ", data.Key, info.Address)
 				}
 				mp[data.Key] = data.Value
 			}
-			for key := range d.rpcdata {
+			for key, info := range d.rpcdata {
 				if _, ok := mp[key]; !ok {
 					delete(d.rpcdata, key)
+					log.Tracef("rpc 下线 | %s | %s ", key, info.Address)
 				}
 			}
 		}
