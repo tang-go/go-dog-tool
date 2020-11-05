@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -27,7 +26,7 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatalln("failed to get nodes:", err)
 	}
@@ -41,7 +40,7 @@ func main() {
 		fmt.Println(node.Status.Allocatable.Memory().String())
 	}
 
-	pods, err := clientset.CoreV1().Pods("qa").List(context.TODO(), metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods("qa").List(metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}

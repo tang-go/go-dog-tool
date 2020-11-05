@@ -23,6 +23,6 @@ require (
 	honnef.co/go/tools v0.0.1-2019.2.3
 	k8s.io/api v0.17.0 // indirect
 	k8s.io/apimachinery v0.17.0
-	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/client-go v0.17.0
 	k8s.io/utils v0.0.0-20201015054608-420da100c033 // indirect
 )
