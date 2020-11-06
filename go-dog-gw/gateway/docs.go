@@ -106,6 +106,14 @@ func _Type(tp string) string {
 		return "integer"
 	case "int64":
 		return "integer"
+	case "uint8":
+		return "integer"
+	case "uint":
+		return "integer"
+	case "uint32":
+		return "integer"
+	case "uint64":
+		return "integer"
 	case "float":
 		return "number"
 	case "float32":
