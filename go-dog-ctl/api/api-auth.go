@@ -8,7 +8,7 @@ import (
 )
 
 //Auth 插件
-func (pointer *API) Auth(ctx plugins.Context, token string) error {
+func (pointer *API) Auth(ctx plugins.Context, method, token string) error {
 	admin := new(table.Admin)
 	if e := pointer.cache.GetCache().Get(token, admin); e != nil {
 		return customerror.EnCodeError(define.AdminTokenErr, "token失效或者不正确")
