@@ -17,7 +17,7 @@ require (
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.8
-	github.com/tang-go/go-dog v0.0.0-20201104081931-ca8b50114ea0 // indirect
+	github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	honnef.co/go/tools v0.0.1-2019.2.3
