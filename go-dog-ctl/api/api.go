@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -33,82 +32,26 @@ import (
 	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
 	"github.com/tang-go/go-dog/serviceinfo"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 //Router 注册路由
 func (pointer *API) Router() {
-	//获取图片验证码
-	pointer.service.GET("GetCode", "v1", "get/code",
-		3,
-		false,
-		"获取图片验证码",
-		pointer.GetCode)
-	//管理员登录
-	pointer.service.POST("AdminLogin", "v1", "admin/login",
-		3,
-		false,
-		"管理员登录",
-		pointer.AdminLogin)
-	//获取管理员信息
-	pointer.service.GET("GetAdminInfo", "v1", "get/admin/info",
-		3,
-		true,
-		"获取管理员信息",
-		pointer.GetAdminInfo)
-	//获取角色列表
-	pointer.service.GET("GetRoleList", "v1", "get/role/list",
-		3,
-		true,
-		"获取角色列表",
-		pointer.GetRoleList)
-	//获取编译发布记录
-	pointer.service.GET("GetBuildServiceList", "v1", "get/build/service/list",
-		3,
-		true,
-		"获取编译发布记录",
-		pointer.GetBuildServiceList)
-	//发布服务
-	pointer.service.POST("BuildService", "v1", "build/service",
-		3,
-		true,
-		"编译发布服务",
-		pointer.BuildService)
-	//获取docker运行服务
-	pointer.service.GET("GetDockerList", "v1", "get/docker/list",
-		3,
-		true,
-		"获取docker运行服务",
-		pointer.GetDockerList)
-	//docker启动服务
-	pointer.service.POST("StartDocker", "v1", "strat/docker",
-		3,
-		true,
-		"docker方式启动服务",
-		pointer.StartDocker)
-	//docker 关闭
-	pointer.service.POST("CloseDocker", "v1", "clsoe/docker",
-		3,
-		true,
-		"关闭docker服务",
-		pointer.CloseDocker)
-	//删除docker服务
-	pointer.service.POST("DelDocker", "v1", "del/docker",
-		3,
-		true,
-		"删除docker服务",
-		pointer.DelDocker)
-	//删除docker服务
-	pointer.service.POST("RestartDocker", "v1", "restart/docker",
-		3,
-		true,
-		"重启docker服务",
-		pointer.RestartDocker)
-	//获取服务列表
-	pointer.service.GET("GetServiceList", "v1", "get/service/list",
-		3,
-		true,
-		"获取服务列表",
-		pointer.GetServiceList)
+	pointer.service.GET("GetCode", "v1", "get/code", 3, false, "获取图片验证码", pointer.GetCode)
+	pointer.service.POST("AdminLogin", "v1", "admin/login", 3, false, "管理员登录", pointer.AdminLogin)
+	pointer.service.GET("GetAdminInfo", "v1", "get/admin/info", 3, true, "获取管理员信息", pointer.GetAdminInfo)
+	pointer.service.GET("GetRoleList", "v1", "get/role/list", 3, true, "获取角色列表", pointer.GetRoleList)
+	pointer.service.GET("GetBuildServiceList", "v1", "get/build/service/list", 3, true, "获取编译发布记录", pointer.GetBuildServiceList)
+	pointer.service.POST("BuildService", "v1", "build/service", 3, true, "编译发布服务", pointer.BuildService)
+	pointer.service.GET("GetDockerList", "v1", "get/docker/list", 3, true, "获取docker运行服务", pointer.GetDockerList)
+	pointer.service.POST("StartDocker", "v1", "strat/docker", 3, true, "docker方式启动服务", pointer.StartDocker)
+	pointer.service.POST("CloseDocker", "v1", "clsoe/docker", 3, true, "关闭docker服务", pointer.CloseDocker)
+	pointer.service.POST("DelDocker", "v1", "del/docker", 3, true, "删除docker服务", pointer.DelDocker)
+	pointer.service.POST("RestartDocker", "v1", "restart/docker", 3, true, "重启docker服务", pointer.RestartDocker)
+	pointer.service.GET("GetServiceList", "v1", "get/service/list", 3, true, "获取服务列表", pointer.GetServiceList)
+	pointer.service.GET("GetKubernetesNameSpace", "v1", "get/kubernetes/namespace", 3, true, "获取k8s的namespace", pointer.GetKubernetesNameSpace)
+	pointer.service.GET("GetKubernetesDeployments", "v1", "get/kubernetes/deployments", 3, true, "获取kubernetes的Deployments部署", pointer.GetKubernetesDeployments)
 }
 
 //APIService API服务
@@ -127,13 +70,25 @@ type API struct {
 	mysql     *mysql.Mysql
 	snowflake *snowflake.SnowFlake
 	cache     *cache.Cache
-	lock      sync.RWMutex
+	clientSet *kubernetes.Clientset
 }
 
 //NewService 初始化服务
 func NewService() *API {
 	ctl := new(API)
+	//初始化日志
 	ctl.cfg = cfg.NewConfig()
+	//初始化k8s
+	config, err := clientcmd.BuildConfigFromFlags("", "./config/admin.conf")
+	if err != nil {
+		panic(err.Error())
+	}
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+	ctl.clientSet = clientSet
+	//初始化docker
 	//cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
 	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
 	if err != nil {

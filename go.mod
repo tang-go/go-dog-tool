@@ -3,6 +3,7 @@ module github.com/tang-go/go-dog-tool
 go 1.13
 
 require (
+	github.com/Microsoft/go-winio v0.4.15 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0
@@ -17,7 +18,7 @@ require (
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.8
-	github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6 // indirect
+	github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	honnef.co/go/tools v0.0.1-2019.2.3

@@ -7,8 +7,6 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
-
-	"github.com/tang-go/go-dog-tool/define"
 )
 
 //Docs 文档内容
@@ -383,9 +381,9 @@ func (g *Gateway) _AssembleDocs() string {
 	definitions := make(map[string]Definitions)
 
 	g.discovery.RangeAPI(func(url string, api *ServcieAPI) {
-		if api.Name == define.SvcController {
-			return
-		}
+		// if api.Name == define.SvcController {
+		// 	return
+		// }
 		if api.Method.Kind == "POST" {
 			api, d := _CreatePOSTAPI(
 				api.Name,

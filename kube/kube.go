@@ -1,10 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -12,11 +10,7 @@ import (
 )
 
 func main() {
-	var kubeconfig *string
-	kubeconfig = flag.String("kubeconfig", filepath.Join("./config", "kube.config"), "(optional) absolute path to the kubeconfig file")
-	fmt.Println(*kubeconfig)
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", "./config/admin.conf")
 	if err != nil {
 		panic(err.Error())
 	}

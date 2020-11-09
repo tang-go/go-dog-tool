@@ -28,4 +28,8 @@ const (
 	DelDockerErr = 10011
 	//RestartDockerErr 重启失败
 	RestartDockerErr = 10012
+	//GetKubernetesNameSpaceErr 获取k8s的namespqce失败
+	GetKubernetesNameSpaceErr = 10013
+	//GetKubernetesPodsByNamsespaceErr 获取k8s的pods失败
+	GetKubernetesPodsByNamsespace = 10014
 )
