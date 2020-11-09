@@ -14,7 +14,7 @@ import (
 func main() {
 	var kubeconfig *string
 	kubeconfig = flag.String("kubeconfig", filepath.Join("./config", "kube.config"), "(optional) absolute path to the kubeconfig file")
-
+	fmt.Println(*kubeconfig)
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
