@@ -32,4 +32,6 @@ const (
 	GetKubernetesNameSpaceErr = 10013
 	//GetKubernetesPodsByNamsespaceErr 获取k8s的pods失败
 	GetKubernetesPodsByNamsespace = 10014
+	//GetKubernetesDeploymentInfoByNameErr Deployments部署的详情失败
+	GetKubernetesDeploymentInfoByNameErr = 10015
 )
