@@ -36,22 +36,22 @@ func (pointer *API) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfo
 			PermissionID:   "admin",
 			PermissionName: role.Description,
 			ActionEntitySet: []*param.ActionEntitySet{
-				&param.ActionEntitySet{
+				{
 					Action:       "add",
 					Describe:     "新增",
 					DefaultCheck: true,
 				},
-				&param.ActionEntitySet{
+				{
 					Action:       "delete",
 					Describe:     "删除",
 					DefaultCheck: true,
 				},
-				&param.ActionEntitySet{
+				{
 					Action:       "update",
 					Describe:     "修改",
 					DefaultCheck: true,
 				},
-				&param.ActionEntitySet{
+				{
 					Action:       "query",
 					Describe:     "查询",
 					DefaultCheck: true,
