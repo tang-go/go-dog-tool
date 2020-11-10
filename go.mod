@@ -20,9 +20,6 @@ require (
 	github.com/swaggo/swag v1.6.8
 	github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	honnef.co/go/tools v0.0.1-2019.2.3
-	k8s.io/api v0.17.0 // indirect
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
 	k8s.io/utils v0.0.0-20201015054608-420da100c033 // indirect
