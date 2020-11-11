@@ -34,4 +34,8 @@ const (
 	GetKubernetesPodsByNamsespace = 10014
 	//GetKubernetesDeploymentInfoByNameErr Deployments部署的详情失败
 	GetKubernetesDeploymentInfoByNameErr = 10015
+	//CreateKubernetesDeploymentErr 创建部署失败
+	CreateKubernetesDeploymentErr = 10016
+	//DeleteKubernetesDeploymentErr 删除失败
+	DeleteKubernetesDeploymentErr = 10017
 )

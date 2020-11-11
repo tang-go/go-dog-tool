@@ -53,7 +53,9 @@ func (pointer *API) Router() {
 	pointer.service.GET("GetKubernetesNameSpace", "v1", "get/kubernetes/namespace", 3, true, "获取k8s的namespace", pointer.GetKubernetesNameSpace)
 	pointer.service.GET("GetKubernetesDeployments", "v1", "get/kubernetes/deployments", 3, true, "获取kubernetes的Deployments部署", pointer.GetKubernetesDeployments)
 	pointer.service.GET("GetKubernetesDeploymentInfoByName", "v1", "get/kubernetes/deployment/info/by/name", 3, true, "根据Name获取kubernetes的Deployments部署的详情", pointer.GetKubernetesDeploymentInfoByName)
-
+	pointer.service.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", pointer.CreateKubernetesDeployment)
+	pointer.service.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", pointer.DeleteKubernetesDeployment)
+	pointer.service.POST("GetKubernetesPodLog", "v1", "get/kubernetes/pod/log", 3, true, "获取kubernetes的pod日志", pointer.GetKubernetesPodLog)
 }
 
 //APIService API服务

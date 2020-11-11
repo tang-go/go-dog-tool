@@ -58,9 +58,48 @@ type GetKubernetesDeploymentInfoByNameRes struct {
 	AvailableReplicas int32                  `json:"availableReplicas" description:"部署可用的副本数量" type:"string"`
 	Labels            map[string]string      `json:"labels" description:"标签" type:"object"`
 	Annotations       map[string]string      `json:"annotations" description:"注解" type:"object"`
+	Service           Service                `json:"service" description:"Service" type:"Service"`
 	Conditions        []DeploymentConditions `json:"conditions" description:"Deployment运行时候信息" type:"[]DeploymentConditions"`
 	ReplicaSets       []ReplicaSet           `json:"replicaSets" description:"副本集合" type:"[]ReplicaSet"`
 	Pods              []Pod                  `json:"pods" description:"pod集合" type:"[]Pod"`
+}
+
+//CreateKubernetesDeploymentReq 创建一个部署
+type CreateKubernetesDeploymentReq struct {
+	Name          string         `json:"name" description:"名称" type:"string"`
+	NameSpace     string         `json:"nameSpace" description:"命名空间" type:"string"`
+	Replicas      int32          `json:"replicas" description:"部署的副本数量" type:"int32"`
+	RestartPolicy string         `json:"restartPolicy" description:"镜像重启方式" type:"string"`
+	Service       Service        `json:"service" description:"Service暴露端口" type:"Service"`
+	Containers    []PodContainer `json:"containers" description:"容器" type:"[]PodContainers"`
+}
+
+//CreateKubernetesDeploymentReq 创建一个部署
+type CreateKubernetesDeploymentRes struct {
+	Success bool `json:"success" description:"成功失败" type:"bool"`
+}
+
+//DeleteKubernetesDeploymentReq 删除部署
+type DeleteKubernetesDeploymentReq struct {
+	Name      string `json:"name" description:"名称" type:"string"`
+	NameSpace string `json:"nameSpace" description:"命名空间" type:"string"`
+	TailLines int64  `json:"tailLines" description:"显示行数" type:"int64"`
+}
+
+//DeleteKubernetesDeploymentRes 删除部署
+type DeleteKubernetesDeploymentRes struct {
+	Success bool `json:"success" description:"成功失败" type:"bool"`
+}
+
+//GetKubernetesPodLogReq 获取pod日志
+type GetKubernetesPodLogReq struct {
+	Name      string `json:"name" description:"名称" type:"string"`
+	NameSpace string `json:"nameSpace" description:"命名空间" type:"string"`
+}
+
+//GetKubernetesPodLogRes 获取pod日志
+type GetKubernetesPodLogRes struct {
+	Success bool `json:"success" description:"成功失败" type:"bool"`
 }
 
 //DeploymentConditions  Deploymen运行状态
@@ -70,6 +109,26 @@ type DeploymentConditions struct {
 	LastUpdateTime string `json:"lastUpdateTime" description:"最后更新时间" type:"string"`
 	Reason         string `json:"reason" description:"原因" type:"string"`
 	Message        string `json:"message" description:"消息" type:"string"`
+}
+
+//Service k8s里面暴露的Service
+type Service struct {
+	Type        string            `json:"type" description:"类型" type:"string"`
+	CreateTime  string            `json:"createTime" description:"创建时间" type:"string"`
+	ClusterIP   string            `json:"clusterIP" description:"集群IP" type:"string"`
+	Ports       []ServicePort     `json:"ports" description:"端口" type:"[]ServicePort"`
+	Labels      map[string]string `json:"labels" description:"标签" type:"object"`
+	Annotations map[string]string `json:"annotations" description:"注解" type:"object"`
+	Selector    map[string]string `json:"selector" description:"选择器" type:"object"`
+}
+
+//ServicePort 暴露的服务端口
+type ServicePort struct {
+	Name       string `json:"name" description:"名称" type:"string"`
+	NodePort   int32  `json:"nodePort" description:"节点端口" type:"int32"`
+	Port       int32  `json:"port" description:"服务端口" type:"int32"`
+	Protocol   string `json:"protocol" description:"协议" type:"string"`
+	TargetPort int32  `json:"targetPort" description:"容器端口" type:"int32"`
 }
 
 //ReplicaSet 副本集
@@ -127,8 +186,8 @@ type PodContainer struct {
 //ContainerSpec  容器规格定义
 type ContainerSpec struct {
 	ImagePullPolicy string   `json:"imagePullPolicy" description:"镜像拉取方式" type:"string"`
-	Command         []string `json:"command" description:"容器的运行状态" type:"[]string"`
-	Args            []string `json:"args" description:"容器的运行状态" type:"[]string"`
+	Command         []string `json:"command" description:"Command" type:"[]string"`
+	Args            []string `json:"args" description:"Args" type:"[]string"`
 }
 
 // ContainerStatus 容器状态
