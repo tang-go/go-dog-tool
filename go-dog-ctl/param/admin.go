@@ -47,3 +47,23 @@ type AdminLoginRes struct {
 	OwnerID string `json:"ownerId" description:"业主ID" type:"string"`
 	Token   string `json:"token" description:"注册用户的token" type:"string"`
 }
+
+//AdminOnlineReq 管理员上线
+type AdminOnlineReq struct {
+	Address string `json:"address" description:"用户上线" type:"string"`
+}
+
+//AdminOnlineRes 管理员上线
+type AdminOnlineRes struct {
+	Success bool `success:"address" description:"结果" type:"bool"`
+}
+
+//AdminOfflineReq 管理员下线
+type AdminOfflineReq struct {
+	Address string `json:"address" description:"用户上线" type:"string"`
+}
+
+//AdminOfflineRes 管理员下线
+type AdminOfflineRes struct {
+	Success bool `success:"address" description:"结果" type:"bool"`
+}

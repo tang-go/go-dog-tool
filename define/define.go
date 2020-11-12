@@ -26,10 +26,12 @@ const (
 	RunDockerTopic = "run-docker-topic"
 	//BuildServiceEvent 编译服务
 	BuildServiceTopic = "build-service-topic"
+	//K8sLogTopic k8s日志话题
+	K8sLogTopic = "k8s-log-topic"
 )
 const (
 	//AdminTokenValidityTime 管理员token有效时间 1小时
-	AdminTokenValidityTime = 60 * 60
+	AdminTokenValidityTime = 10
 	//CodeValidityTime 验证码有效时间 5分钟
 	CodeValidityTime = 60 * 5
 )

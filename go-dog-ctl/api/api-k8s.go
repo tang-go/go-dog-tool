@@ -236,7 +236,6 @@ func (pointer *API) CreateKubernetesDeployment(ctx plugins.Context, request para
 	deployment.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: label,
 	}
-
 	//容器设置
 	for _, container := range request.Containers {
 		deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, corev1.Container{
@@ -315,24 +314,48 @@ func (pointer *API) DeleteKubernetesDeployment(ctx plugins.Context, request para
 }
 
 //GetKubernetesPodLog 获取kubernetes的pod日志
-func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.DeleteKubernetesDeploymentReq) (response param.DeleteKubernetesDeploymentRes, err error) {
+func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKubernetesPodLogReq) (response param.GetKubernetesPodLogRes, err error) {
+	key := fmt.Sprintf("k8s-pod-%s-%s", request.NameSpace, request.Name)
+	count, e := pointer.cache.GetCache().SCard(key)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+		return
+	}
+	if count > 0 {
+		if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
+			log.Errorln(e.Error())
+			err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+			return
+		}
+		response.Success = true
+		return
+	}
 	if request.TailLines <= 0 {
 		request.TailLines = 100
 	}
+	logs, e := pointer.clientSet.CoreV1().Pods(request.NameSpace).GetLogs(request.Name, &corev1.PodLogOptions{
+		TailLines: &request.TailLines,
+		Follow:    true,
+	}).Stream()
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+		return
+	}
+	//添加到缓存队列
+	if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+		logs.Close()
+		return
+	}
 	go func() {
-		logs, e := pointer.clientSet.CoreV1().Pods(request.NameSpace).GetLogs(request.Name, &corev1.PodLogOptions{
-			TailLines: &request.TailLines,
-			Follow:    true,
-		}).Stream()
-		if e != nil {
-			log.Errorln(e.Error())
-			return
-		}
 		scanner := bufio.NewScanner(logs)
 		for scanner.Scan() {
 			fmt.Println(scanner.Text())
 		}
-
+		fmt.Println("退出")
 	}()
 	response.Success = true
 	return

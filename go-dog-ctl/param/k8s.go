@@ -83,7 +83,6 @@ type CreateKubernetesDeploymentRes struct {
 type DeleteKubernetesDeploymentReq struct {
 	Name      string `json:"name" description:"名称" type:"string"`
 	NameSpace string `json:"nameSpace" description:"命名空间" type:"string"`
-	TailLines int64  `json:"tailLines" description:"显示行数" type:"int64"`
 }
 
 //DeleteKubernetesDeploymentRes 删除部署
@@ -95,6 +94,7 @@ type DeleteKubernetesDeploymentRes struct {
 type GetKubernetesPodLogReq struct {
 	Name      string `json:"name" description:"名称" type:"string"`
 	NameSpace string `json:"nameSpace" description:"命名空间" type:"string"`
+	TailLines int64  `json:"tailLines" description:"显示行数" type:"int64"`
 }
 
 //GetKubernetesPodLogRes 获取pod日志

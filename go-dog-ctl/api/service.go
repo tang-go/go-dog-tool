@@ -3,7 +3,6 @@ package api
 import (
 	"archive/tar"
 	"bufio"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,30 +13,37 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/cfg"
+	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
+	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/lib/md5"
 	"github.com/tang-go/go-dog/lib/rand"
 	"github.com/tang-go/go-dog/lib/snowflake"
+	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/mysql"
+	"github.com/tang-go/go-dog/pkg/context"
 	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
-	"github.com/tang-go/go-dog/serviceinfo"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 //Router 注册路由
 func (pointer *API) Router() {
+	pointer.service.RPC("AdminOnline", 3, true, "管理员上线", pointer.AdminOnline)
+	pointer.service.RPC("AdminOffline", 3, true, "管理员下线", pointer.AdminOffline)
 	pointer.service.GET("GetCode", "v1", "get/code", 3, false, "获取图片验证码", pointer.GetCode)
 	pointer.service.POST("AdminLogin", "v1", "admin/login", 3, false, "管理员登录", pointer.AdminLogin)
 	pointer.service.GET("GetAdminInfo", "v1", "get/admin/info", 3, true, "获取管理员信息", pointer.GetAdminInfo)
@@ -59,22 +65,32 @@ func (pointer *API) Router() {
 }
 
 //APIService API服务
-type _APIService struct {
-	method  *serviceinfo.API
-	name    string
-	explain string
-	count   int32
+// type _APIService struct {
+// 	method  *serviceinfo.API
+// 	name    string
+// 	explain string
+// 	count   int32
+// }
+
+//buildEvent 编译事件
+type buildEvent struct {
+	ctx     plugins.Context
+	request *param.BuildServiceReq
+	buildID int64
 }
 
 //API 控制服务
 type API struct {
-	service   plugins.Service
-	cfg       *cfg.Config
-	docker    *client.Client
-	mysql     *mysql.Mysql
-	snowflake *snowflake.SnowFlake
-	cache     *cache.Cache
-	clientSet *kubernetes.Clientset
+	service    plugins.Service
+	cfg        *cfg.Config
+	docker     *client.Client
+	mysql      *mysql.Mysql
+	snowflake  *snowflake.SnowFlake
+	cache      *cache.Cache
+	clientSet  *kubernetes.Clientset
+	buildEvent chan *buildEvent
+	closeEvent chan bool
+	wait       sync.WaitGroup
 }
 
 //NewService 初始化服务
@@ -134,12 +150,20 @@ func NewService() *API {
 	ctl.Router()
 	//初始化数据库数据
 	ctl._InitMysql(ctl.cfg.GetPhone(), ctl.cfg.GetPwd())
+	//启动事件执行器
+	ctl.buildEvent = make(chan *buildEvent)
+	ctl.closeEvent = make(chan bool)
+	//启动
+	go ctl._EventExecution()
 	return ctl
 }
 
 //Run 启动
 func (pointer *API) Run() error {
-	return pointer.service.Run()
+	err := pointer.service.Run()
+	pointer.wait.Wait()
+	pointer.closeEvent <- true
+	return err
 }
 
 //_InitMysql 第一次加载初始化数据库数据
@@ -313,11 +337,11 @@ func (pointer *API) _BuildImage(tarFile, project, imageName string, success func
 
 //_CloseDocker 关闭镜像
 func (pointer *API) _CloseDocker(id string) error {
-	err := pointer.docker.ContainerStop(context.TODO(), id, nil)
+	err := pointer.docker.ContainerStop(context.Background(), id, nil)
 	if err != nil {
 		return err
 	}
-	err = pointer.docker.ContainerRemove(context.TODO(), id, types.ContainerRemoveOptions{})
+	err = pointer.docker.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -339,7 +363,7 @@ func (pointer *API) _PushImage(registryUser, registryPassword, image string, suc
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		config.RegistryAuth = authStr
 	}
-	out, err := pointer.docker.ImagePush(context.TODO(), image, config)
+	out, err := pointer.docker.ImagePush(context.Background(), image, config)
 	if err != nil {
 		return err
 	}
@@ -365,7 +389,7 @@ func (pointer *API) _PullImage(registryUser, registryPassword, image string, suc
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		config.RegistryAuth = authStr
 	}
-	out, err := pointer.docker.ImagePull(context.TODO(), image, config)
+	out, err := pointer.docker.ImagePull(context.Background(), image, config)
 	if err != nil {
 		return err
 	}
@@ -376,7 +400,7 @@ func (pointer *API) _PullImage(registryUser, registryPassword, image string, suc
 	return nil
 }
 
-// 打包tar
+//_CreateTar 打包tar
 func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool) error {
 	tarfile, err := os.Create(filetarget)
 	if err != nil {
@@ -416,6 +440,7 @@ func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool
 	return nil
 }
 
+//_TarFile 打包文件
 func (pointer *API) _TarFile(directory string, filesource string, sfileInfo os.FileInfo, tarwriter *tar.Writer) error {
 	sfile, err := os.Open(filesource)
 	if err != nil {
@@ -441,6 +466,7 @@ func (pointer *API) _TarFile(directory string, filesource string, sfileInfo os.F
 	return nil
 }
 
+//_TarFolder 打包文件架
 func (pointer *API) _TarFolder(directory string, tarwriter *tar.Writer) error {
 	baseFolder := filepath.Base(directory)
 	return filepath.Walk(directory, func(targetpath string, file os.FileInfo, err error) error {
@@ -465,4 +491,123 @@ func (pointer *API) _TarFolder(directory string, tarwriter *tar.Writer) error {
 		fileFolder := baseFolder + "/" + file.Name()
 		return pointer._TarFile(fileFolder, targetpath, file, tarwriter)
 	})
+}
+
+//_SendEvent 发送事件
+func (pointer *API) _SendEvent(id int64, ctx plugins.Context, request *param.BuildServiceReq) {
+	pointer.wait.Add(1)
+	pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "正在排队进行编译，请稍等")
+	pointer.buildEvent <- &buildEvent{
+		buildID: id,
+		ctx:     ctx,
+		request: request,
+	}
+}
+
+//_EventExecution 事件执行队列
+func (pointer *API) _EventExecution() {
+	for {
+		select {
+		case event := <-pointer.buildEvent:
+			request := event.request
+			ctx := event.ctx
+			logTxt := ""
+			paths := strings.Split(request.Git, "/")
+			l := len(paths)
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译 "+request.Git)
+			logTxt = logTxt + `开始编译<p/>`
+			if l <= 0 {
+				pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
+				logTxt = logTxt + `路径不正确<p/>`
+			} else {
+				system := runtime.GOOS
+				build := ""
+				log.Traceln("当前系统环境", system)
+				switch system {
+				case "darwin":
+					build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+				case "linxu":
+					build = "go build -o " + request.Name
+				default:
+					build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+				}
+				name := strings.Replace(paths[l-1], ".git", "", -1)
+				image := request.Harbor + `/` + request.Name + `:` + request.Version
+				shell := `
+				git clone ` + request.Git + `
+				cd ` + name + `
+				go mod tidy
+				cd ` + request.Path + `
+				` + build
+				pointer._RunInLinux(shell, func(success string) {
+					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
+					logTxt = logTxt + success + `<p/>`
+				}, func(err string) {
+					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
+					logTxt = logTxt + err + `<p/>`
+				})
+				path := fmt.Sprintf("./%s/%s", name, request.Path)
+				tarName := uuid.GetToken() + ".tar"
+				//打包
+				if e := pointer._CreateTar(path, tarName, false); e != nil {
+					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+					logTxt = logTxt + e.Error() + `<p/>`
+				} else {
+					//编译镜像
+					if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+						logTxt = logTxt + res + `<p/>`
+					}); err != nil {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
+						logTxt = logTxt + err.Error() + `<p/>`
+					}
+					//删除执行文件夹
+					pointer._RunInLinux("rm -rf "+name+" "+tarName, nil, nil)
+					//执行push
+					if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+						logTxt = logTxt + res + `<p/>`
+					}); e != nil {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+						logTxt = logTxt + e.Error() + `<p/>`
+					}
+				}
+				pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
+				logTxt = logTxt + "执行完成" + `<p/>`
+			}
+			//完成
+			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", event.buildID).Update(
+				map[string]interface{}{
+					"Log":    logTxt,
+					"Status": true,
+				}).Error
+			if err != nil {
+				log.Errorln(err.Error())
+			}
+			pointer.wait.Done()
+		case <-pointer.closeEvent:
+			return
+		}
+	}
+}
+
+//_PuseMsgToAdmin 给admin推送消息
+func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) {
+	admin := new(table.Admin)
+	if e := pointer.cache.GetCache().Get(token, admin); e != nil {
+		//用户下线了,不推送任何消息
+		return
+	}
+	ctx := context.Background()
+	ctx.SetIsTest(false)
+	ctx.SetTraceID(uuid.GetToken())
+	ctx.SetToken(token)
+	if e := pointer.service.GetClient().CallByAddress(context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), admin.GateAddress, define.SvcGateWay, "Push", &gateParam.PushReq{
+		Token: token,
+		Topic: topic,
+		Msg:   msg,
+	}, &gateParam.PushRes{}); e != nil {
+		log.Warnln(e.Error())
+		return
+	}
 }

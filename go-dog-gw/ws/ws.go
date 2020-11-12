@@ -2,15 +2,19 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/tang-go/go-dog-tool/define"
+	ctlParam "github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-gw/param"
-	"github.com/tang-go/go-dog/cache"
+	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
+	"github.com/tang-go/go-dog/pkg/context"
 	"github.com/tang-go/go-dog/plugins"
 )
 
@@ -26,15 +30,14 @@ var wsupgrader = websocket.Upgrader{
 
 //Ws websocket客户端
 type Ws struct {
-	cache   *cache.Cache
+	service plugins.Service
 	clitens sync.Map
 }
 
 //NewWs 新建ws
-func NewWs(cfg plugins.Cfg) *Ws {
+func NewWs(service plugins.Service) *Ws {
 	return &Ws{
-		//初始化缓存
-		cache: cache.NewCache(cfg),
+		service: service,
 	}
 }
 
@@ -50,20 +53,20 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 	if token == "" {
 		return
 	}
-	if _, ok := pointer.clitens.Load(token); ok {
-		log.Tracef("重复登录 | %s |", token)
-		return
-	}
-	info := new(interface{})
-	if e := pointer.cache.GetCache().Get(token, info); e != nil {
+	//调用上线
+	if e := pointer._Online(token); e != nil {
 		log.Errorln(e.Error())
 		return
 	}
 	log.Tracef("玩家上线 | %s |", token)
-	client := newclient(token, conn)
+	client := newclient(pointer, token, conn)
 	pointer.clitens.Store(token, client)
 	client.run()
 	pointer.clitens.Delete(token)
+	if e := pointer._Offline(token); e != nil {
+		log.Errorln(e.Error())
+	}
+	log.Tracef("玩家下线 | %s |", token)
 }
 
 //Push 消息推送
@@ -81,19 +84,55 @@ func (pointer *Ws) Push(ctx plugins.Context, request param.PushReq) (response pa
 	return
 }
 
+//_Online 上线
+func (pointer *Ws) _Online(token string) error {
+	ctx := context.Background()
+	ctx.SetIsTest(false)
+	ctx.SetTraceID(uuid.GetToken())
+	ctx.SetToken(token)
+	return pointer.service.GetClient().Call(
+		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
+		plugins.RandomMode,
+		define.SvcController,
+		"AdminOnline",
+		&ctlParam.AdminOnlineReq{
+			Address: fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()),
+		}, &ctlParam.AdminOnlineRes{})
+}
+
+//_Offline 下线
+func (pointer *Ws) _Offline(token string) error {
+	ctx := context.Background()
+	ctx.SetIsTest(false)
+	ctx.SetTraceID(uuid.GetToken())
+	ctx.SetToken(token)
+	//调用下线
+	return pointer.service.GetClient().Call(
+		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
+		plugins.RandomMode,
+		define.SvcController,
+		"AdminOffline",
+		&ctlParam.AdminOfflineReq{
+			Address: fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()),
+		}, &ctlParam.AdminOfflineRes{})
+}
+
 type client struct {
+	ws    *Ws
 	conn  *websocket.Conn
 	token string
 }
 
-func newclient(token string, conn *websocket.Conn) *client {
+func newclient(ws *Ws, token string, conn *websocket.Conn) *client {
 	return &client{
+		ws:    ws,
 		conn:  conn,
 		token: token,
 	}
 }
 
 func (c *client) run() {
+	count := 0
 	for {
 		_, err := c.read(c.conn, time.Now().Add(time.Second*10))
 		if err != nil {
@@ -101,6 +140,15 @@ func (c *client) run() {
 			log.Errorln(err.Error())
 			return
 		}
+		if count/4 == 0 {
+			count = 0
+			if err := c.ws._Online(c.token); err != nil {
+				c.conn.Close()
+				log.Errorln(err.Error())
+				return
+			}
+		}
+		count++
 	}
 }
 

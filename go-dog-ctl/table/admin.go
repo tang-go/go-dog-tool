@@ -25,6 +25,10 @@ type Admin struct {
 	OwnerID int64
 	//是否被禁用
 	IsDisable bool
+	//是否在线
+	IsOnline bool
+	//在线网关地址
+	GateAddress string
 	//角色
 	RoleID int64
 	//注册事件

@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -10,9 +8,7 @@ import (
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
-	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	customerror "github.com/tang-go/go-dog/error"
-	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
 )
@@ -73,17 +69,6 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		err = customerror.EnCodeError(define.BuildServiceErr, "路径不正确")
 		return
 	}
-	system := runtime.GOOS
-	build := ""
-	log.Traceln("当前系统环境", system)
-	switch system {
-	case "darwin":
-		build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-	case "linxu":
-		build = "go build -o " + request.Name
-	default:
-		build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-	}
 	//添加编译记录
 	tbBuild := table.BuildService{
 		ID:      pointer.snowflake.GetID(),
@@ -131,96 +116,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		return
 	}
 	tx.Commit()
-
-	name := strings.Replace(paths[l-1], ".git", "", -1)
-	image := request.Harbor + `/` + request.Name + `:` + request.Version
-	shell := `
-	git clone ` + request.Git + `
-	cd ` + name + `
-	go mod tidy
-	cd ` + request.Path + `
-	` + build
-	go func() {
-		logTxt := ""
-		pointer._RunInLinux(shell, func(success string) {
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.BuildServiceTopic,
-				Msg:   success,
-			}, &gateParam.PushRes{})
-			logTxt = logTxt + success + `<p/>`
-			fmt.Println(success)
-		}, func(err string) {
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.BuildServiceTopic,
-				Msg:   err,
-			}, &gateParam.PushRes{})
-			logTxt = logTxt + err + `<p/>`
-			fmt.Println(err)
-		})
-		path := fmt.Sprintf("./%s/%s", name, request.Path)
-		tarName := uuid.GetToken() + ".tar"
-		//打包
-		if e := pointer._CreateTar(path, tarName, false); e != nil {
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.BuildServiceTopic,
-				Msg:   e.Error(),
-			}, &gateParam.PushRes{})
-			logTxt = logTxt + e.Error() + `<p/>`
-		} else {
-			//编译镜像
-			if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
-				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-					Token: ctx.GetToken(),
-					Topic: define.BuildServiceTopic,
-					Msg:   res,
-				}, &gateParam.PushRes{})
-				logTxt = logTxt + res + `<p/>`
-			}); err != nil {
-				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-					Token: ctx.GetToken(),
-					Topic: define.BuildServiceTopic,
-					Msg:   err.Error(),
-				}, &gateParam.PushRes{})
-				logTxt = logTxt + err.Error() + `<p/>`
-			}
-			//删除执行文件夹
-			pointer._RunInLinux("rm -rf "+name+" "+tarName, nil, nil)
-			//执行push
-			if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
-				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-					Token: ctx.GetToken(),
-					Topic: define.BuildServiceTopic,
-					Msg:   res,
-				}, &gateParam.PushRes{})
-				logTxt = logTxt + res + `<p/>`
-			}); e != nil {
-				ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-					Token: ctx.GetToken(),
-					Topic: define.BuildServiceTopic,
-					Msg:   e.Error(),
-				}, &gateParam.PushRes{})
-				logTxt = logTxt + e.Error() + `<p/>`
-			}
-		}
-		ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-			Token: ctx.GetToken(),
-			Topic: define.BuildServiceTopic,
-			Msg:   "执行完成",
-		}, &gateParam.PushRes{})
-		logTxt = logTxt + "执行完成" + `<p/>`
-		//完成
-		err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", tbBuild.ID).Update(
-			map[string]interface{}{
-				"Log":    logTxt,
-				"Status": true,
-			}).Error
-		if err != nil {
-			log.Errorln(err.Error())
-		}
-	}()
+	go pointer._SendEvent(tbLog.LogID, ctx, &request)
 	response.Success = true
 	return
 }

@@ -33,8 +33,6 @@ func NewGateway() *Gateway {
 	gateway := new(Gateway)
 	//初始化配置
 	cfg := config.NewConfig()
-	//ws
-	gateway.ws = ws.NewWs(cfg)
 	//初始化服务发现
 	gateway.discovery = NewGoDogDiscovery(cfg.GetDiscovery())
 	//初始化rpc服务
@@ -43,13 +41,10 @@ func NewGateway() *Gateway {
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
 	gateway.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
+	//初始化websocket客户端
+	gateway.ws = ws.NewWs(gateway.service)
 	//推送消息
-	gateway.service.RPC(
-		"Push",
-		3,
-		false,
-		"推送消息",
-		gateway.ws.Push)
+	gateway.service.RPC("Push", 3, false, "推送消息", gateway.ws.Push)
 	//初始化文档
 	swag.Register(swag.Name, gateway)
 	return gateway

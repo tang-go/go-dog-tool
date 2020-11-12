@@ -341,6 +341,12 @@ github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6 h1:w8f/vXzzStpN0Jcd
 github.com/tang-go/go-dog v0.0.0-20201106015504-66e7f13effe6/go.mod h1:HOYTJNH2s8Vc1Iq2/s9OafJenLwEkoBCx3+1W7Ba8N4=
 github.com/tang-go/go-dog v0.0.0-20201110103037-b8341ac1fee6 h1:UwAVU+wNZBl2e+E5OJ5nZZHQo/21nBl6V2Wkbf+CaEU=
 github.com/tang-go/go-dog v0.0.0-20201110103037-b8341ac1fee6/go.mod h1:om0771NPg1IgwVk9HK6UdwOL7hLCCLAUGyNGbG7QLUo=
+github.com/tang-go/go-dog v0.0.0-20201111020402-440e9bf61d5a h1:vwI/8naZjxvmig7JcIxIC9oJY9GkNttMaoTvpTxeTpQ=
+github.com/tang-go/go-dog v0.0.0-20201111020402-440e9bf61d5a/go.mod h1:om0771NPg1IgwVk9HK6UdwOL7hLCCLAUGyNGbG7QLUo=
+github.com/tang-go/go-dog v0.0.0-20201112090054-55a0a2e91852 h1:aHMgd9ukqvvB5xsSPxf0x1kwdOzFoI4QjbetZBFTPRo=
+github.com/tang-go/go-dog v0.0.0-20201112090054-55a0a2e91852/go.mod h1:om0771NPg1IgwVk9HK6UdwOL7hLCCLAUGyNGbG7QLUo=
+github.com/tang-go/go-dog v0.0.0-20201112093440-87e91723922d h1:zYF/fz51AOfbSjDusmirPb+ATpSrjYbLDUNhlp/liWg=
+github.com/tang-go/go-dog v0.0.0-20201112093440-87e91723922d/go.mod h1:om0771NPg1IgwVk9HK6UdwOL7hLCCLAUGyNGbG7QLUo=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 h1:LnC5Kc/wtumK+WB441p7ynQJzVuNRJiqddSIE3IlSEQ=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=

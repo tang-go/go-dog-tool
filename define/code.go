@@ -38,4 +38,10 @@ const (
 	CreateKubernetesDeploymentErr = 10016
 	//DeleteKubernetesDeploymentErr 删除失败
 	DeleteKubernetesDeploymentErr = 10017
+	//AdminOnlineErr 管理员上线错误
+	AdminOnlineErr = 10018
+	//AdminOfflineErr 管理员下线错误
+	AdminOfflineErr = 10019
+	//GetKubernetesPodLogErr 获取pod日志失败
+	GetKubernetesPodLogErr = 10020
 )

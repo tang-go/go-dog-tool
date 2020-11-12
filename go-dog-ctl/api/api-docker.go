@@ -14,7 +14,6 @@ import (
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
-	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	customerror "github.com/tang-go/go-dog/error"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
@@ -92,17 +91,9 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 	pointer._CloseDocker(name)
 	go func() {
 		if e := pointer._PullImage(request.Account, request.Pwd, request.Images, func(res string) {
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.RunDockerTopic,
-				Msg:   res,
-			}, &gateParam.PushRes{})
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, res)
 		}); e != nil {
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.RunDockerTopic,
-				Msg:   e.Error(),
-			}, &gateParam.PushRes{})
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
 			return
 		}
 		config := &container.Config{
@@ -127,28 +118,15 @@ func (pointer *API) StartDocker(ctx plugins.Context, request param.StartDockerRe
 		containerResp, e := pointer.docker.ContainerCreate(ctx, config, hostConfig, nil, name)
 		if e != nil {
 			log.Errorln(e.Error())
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.RunDockerTopic,
-				Msg:   e.Error(),
-			}, &gateParam.PushRes{})
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
 			return
 		}
 		if e := pointer.docker.ContainerStart(ctx, containerResp.ID, types.ContainerStartOptions{}); e != nil {
 			log.Errorln(e.Error())
-			ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-				Token: ctx.GetToken(),
-				Topic: define.RunDockerTopic,
-				Msg:   e.Error(),
-			}, &gateParam.PushRes{})
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
 			return
 		}
-		ctx.GetClient().Broadcast(ctx, define.SvcGateWay, "Push", &gateParam.PushReq{
-			Token: ctx.GetToken(),
-			Topic: define.RunDockerTopic,
-			Msg:   "启动成功",
-		}, &gateParam.PushRes{})
-
+		pointer._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, "启动成功")
 		if pointer.mysql.GetReadEngine().Where("name = ? AND owner_id = ?", request.Name, admin.OwnerID).First(&table.Docker{}).RecordNotFound() == true {
 			ps, _ := json.Marshal(request.Ports)
 			//添加记录
