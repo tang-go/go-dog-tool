@@ -547,8 +547,8 @@ func (pointer *API) _EventExecution() {
 					}),
 					Depth: 1,
 					Auth: &http.BasicAuth{
-						Username: "tangjiework@outlook.com",
-						Password: "tangjie520@",
+						Username: request.GitAccount,
+						Password: request.GitPwd,
 					},
 				}); e == nil {
 					system := runtime.GOOS
@@ -602,8 +602,6 @@ func (pointer *API) _EventExecution() {
 					//删除执行文件夹
 					os.RemoveAll(name)
 					os.RemoveAll(tarName)
-					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
-					logTxt = logTxt + "执行完成" + `<p/>`
 				} else {
 					log.Errorln(e.Error())
 					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
@@ -611,6 +609,8 @@ func (pointer *API) _EventExecution() {
 				}
 			}
 			//完成
+			pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
+			logTxt = logTxt + "执行完成" + `<p/>`
 			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", event.buildID).Update(
 				map[string]interface{}{
 					"Log":    logTxt,

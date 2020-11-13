@@ -268,9 +268,6 @@ func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, 
 	if err := g.service.GetClient().GetCodec().DeCode("json", []byte(param), &p); err != nil {
 		return nil, err
 	}
-	if len(tem) != len(p) {
-		return nil, errors.New("参数不正确")
-	}
 	for key := range p {
 		if _, ok := tem[key]; !ok {
 			log.Traceln("模版", tem, "传入参数", p)
