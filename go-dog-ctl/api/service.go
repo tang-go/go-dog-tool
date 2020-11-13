@@ -38,6 +38,8 @@ import (
 	"github.com/tang-go/go-dog/pkg/context"
 	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -64,6 +66,23 @@ func (pointer *API) Router() {
 	pointer.service.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", pointer.CreateKubernetesDeployment)
 	pointer.service.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", pointer.DeleteKubernetesDeployment)
 	pointer.service.GET("GetKubernetesPodLog", "v1", "get/kubernetes/pod/log", 3, true, "获取kubernetes的pod日志", pointer.GetKubernetesPodLog)
+}
+
+//write 实现
+type write struct {
+	read func([]byte)
+}
+
+func newWrite(read func([]byte)) *write {
+	return &write{read: read}
+}
+
+//Write 写实现
+func (w *write) Write(p []byte) (int, error) {
+	if w.read != nil {
+		w.read(p)
+	}
+	return len(p), nil
 }
 
 //buildEvent 编译事件
@@ -509,69 +528,87 @@ func (pointer *API) _EventExecution() {
 		case event := <-pointer.buildEvent:
 			request := event.request
 			ctx := event.ctx
-			logTxt := ""
 			paths := strings.Split(request.Git, "/")
-			l := len(paths)
+			name := strings.Replace(paths[len(paths)-1], ".git", "", -1)
+			image := request.Harbor + `/` + request.Name + `:` + request.Version
+			logTxt := ""
+
 			pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译 "+request.Git)
 			logTxt = logTxt + `开始编译<p/>`
-			if l <= 0 {
+			if len(paths) <= 0 {
 				pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
 				logTxt = logTxt + `路径不正确<p/>`
 			} else {
-				system := runtime.GOOS
-				build := ""
-				log.Traceln("当前系统环境", system)
-				switch system {
-				case "darwin":
-					build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-				case "linxu":
-					build = "go build -o " + request.Name
-				default:
-					build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-				}
-				name := strings.Replace(paths[l-1], ".git", "", -1)
-				image := request.Harbor + `/` + request.Name + `:` + request.Version
-				shell := `
-				git clone ` + request.Git + `
-				cd ` + name + `
-				go mod tidy
-				cd ` + request.Path + `
-				` + build
-				pointer._RunInLinux(shell, func(success string) {
-					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
-					logTxt = logTxt + success + `<p/>`
-				}, func(err string) {
-					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
-					logTxt = logTxt + err + `<p/>`
-				})
-				path := fmt.Sprintf("./%s/%s", name, request.Path)
-				tarName := uuid.GetToken() + ".tar"
-				//打包
-				if e := pointer._CreateTar(path, tarName, false); e != nil {
-					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
-					logTxt = logTxt + e.Error() + `<p/>`
-				} else {
-					//编译镜像
-					if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-						logTxt = logTxt + res + `<p/>`
-					}); err != nil {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
-						logTxt = logTxt + err.Error() + `<p/>`
+				if _, e := git.PlainClone(name, false, &git.CloneOptions{
+					URL: request.Git,
+					Progress: newWrite(func(b []byte) {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
+						logTxt = logTxt + string(b) + `<p/>`
+					}),
+					Depth: 1,
+					Auth: &http.BasicAuth{
+						Username: "tangjiework@outlook.com",
+						Password: "tangjie520@",
+					},
+				}); e == nil {
+					system := runtime.GOOS
+					build := ""
+					log.Traceln("当前系统环境", system)
+					switch system {
+					case "darwin":
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+					case "linxu":
+						build = "go build -o " + request.Name
+					default:
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 					}
-					//删除执行文件夹
-					pointer._RunInLinux("rm -rf "+name+" "+tarName, nil, nil)
-					//执行push
-					if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-						logTxt = logTxt + res + `<p/>`
-					}); e != nil {
+					//开始编译代码
+					shell := `
+					cd ` + name + `
+					go mod tidy
+					cd ` + request.Path + `
+					` + build
+					pointer._RunInLinux(shell, func(success string) {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
+						logTxt = logTxt + success + `<p/>`
+					}, func(err string) {
+						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
+						logTxt = logTxt + err + `<p/>`
+					})
+					path := fmt.Sprintf("./%s/%s", name, request.Path)
+					tarName := uuid.GetToken() + ".tar"
+					//打包
+					if e := pointer._CreateTar(path, tarName, false); e != nil {
 						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
 						logTxt = logTxt + e.Error() + `<p/>`
+					} else {
+						//编译镜像
+						if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
+							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+							logTxt = logTxt + res + `<p/>`
+						}); err != nil {
+							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
+							logTxt = logTxt + err.Error() + `<p/>`
+						}
+						//执行push
+						if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
+							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+							logTxt = logTxt + res + `<p/>`
+						}); e != nil {
+							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+							logTxt = logTxt + e.Error() + `<p/>`
+						}
 					}
+					//删除执行文件夹
+					os.RemoveAll(name)
+					os.RemoveAll(tarName)
+					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
+					logTxt = logTxt + "执行完成" + `<p/>`
+				} else {
+					log.Errorln(e.Error())
+					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+					logTxt = logTxt + e.Error() + `<p/>`
 				}
-				pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
-				logTxt = logTxt + "执行完成" + `<p/>`
 			}
 			//完成
 			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", event.buildID).Update(

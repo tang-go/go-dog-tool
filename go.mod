@@ -20,6 +20,7 @@ require (
 	github.com/swaggo/swag v1.6.8
 	github.com/tang-go/go-dog v0.0.0-20201113015305-3076916406dd
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
+	gopkg.in/src-d/go-git.v4 v4.13.1
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0

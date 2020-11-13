@@ -116,7 +116,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		return
 	}
 	tx.Commit()
-	go pointer._SendEvent(tbLog.LogID, ctx, &request)
+	go pointer._SendEvent(tbBuild.ID, ctx, &request)
 	response.Success = true
 	return
 }
