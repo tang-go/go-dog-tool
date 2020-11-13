@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
@@ -316,21 +317,37 @@ func (pointer *API) DeleteKubernetesDeployment(ctx plugins.Context, request para
 //GetKubernetesPodLog 获取kubernetes的pod日志
 func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKubernetesPodLogReq) (response param.GetKubernetesPodLogRes, err error) {
 	key := fmt.Sprintf("k8s-pod-%s-%s", request.NameSpace, request.Name)
+	m, e := pointer.etcd.GetMutex(key)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+		return
+	}
+	//获取分布式锁
+	log.Traceln("获取分布式锁", key)
+	for {
+		if e := m.Lock(ctx); e != nil {
+			time.Sleep(time.Millisecond * 10)
+			continue
+		}
+		break
+	}
+	//释放锁
+	defer m.Unlock(ctx)
+	log.Traceln("获取到分布式锁，开始执行", key)
 	count, e := pointer.cache.GetCache().SCard(key)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
 		return
 	}
-	if count > 0 {
-		if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
-			log.Errorln(e.Error())
-			err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
-			return
-		}
-		response.Success = true
+	//插入集合
+	if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
 		return
 	}
+
 	if request.TailLines <= 0 {
 		request.TailLines = 100
 	}
@@ -343,19 +360,27 @@ func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKu
 		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
 		return
 	}
-	//添加到缓存队列
-	if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
-		log.Errorln(e.Error())
-		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
+	if count > 0 {
 		logs.Close()
+		response.Success = true
 		return
 	}
 	go func() {
+		topic := fmt.Sprintf("%s-%s-%s", define.K8sLogTopic, request.NameSpace, request.Name)
 		scanner := bufio.NewScanner(logs)
 		for scanner.Scan() {
-			fmt.Println(scanner.Text())
+			array, e := pointer.cache.GetCache().SMembers(key)
+			if e != nil || len(array) <= 0 {
+				logs.Close()
+				log.Traceln("退出日志发送", key)
+				return
+			}
+			for _, v := range array {
+				if e := pointer._PuseMsgToAdmin(v, topic, scanner.Text()); e != nil {
+					pointer.cache.GetCache().SRem(key, v)
+				}
+			}
 		}
-		fmt.Println("退出")
 	}()
 	response.Success = true
 	return

@@ -40,6 +40,8 @@ type Config struct {
 	Discovery []string `json:"discovery"`
 	//Redis地址
 	Redis []string `json:"redis"`
+	//Etcd地址
+	Etcd []string `json:"etcd"`
 	//Kafka地址
 	Kafka []string `json:"kafka"`
 	//Nats地址
@@ -93,6 +95,11 @@ func (c *Config) GetDiscovery() []string {
 //GetRedis 获取redis配置
 func (c *Config) GetRedis() []string {
 	return c.Redis
+}
+
+//GetEtcd 获取Etcd配置
+func (c *Config) GetEtcd() []string {
+	return c.Etcd
 }
 
 //GetKafka 获取kfaka地址
@@ -214,6 +221,7 @@ func NewConfig() *Config {
 	fmt.Println("### Port:         ", c.Port)
 	fmt.Println("### Discovery:    ", c.Discovery)
 	fmt.Println("### Redis:        ", c.Redis)
+	fmt.Println("### Etcd:         ", c.Etcd)
 	fmt.Println("### Docker:       ", c.Docker)
 	fmt.Println("### Kafka:        ", c.Kafka)
 	fmt.Println("### Nats:         ", c.Nats)

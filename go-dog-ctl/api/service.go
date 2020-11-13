@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,6 +28,7 @@ import (
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	"github.com/tang-go/go-dog/cache"
+	"github.com/tang-go/go-dog/etcd"
 	"github.com/tang-go/go-dog/lib/md5"
 	"github.com/tang-go/go-dog/lib/rand"
 	"github.com/tang-go/go-dog/lib/snowflake"
@@ -61,16 +63,8 @@ func (pointer *API) Router() {
 	pointer.service.GET("GetKubernetesDeploymentInfoByName", "v1", "get/kubernetes/deployment/info/by/name", 3, true, "根据Name获取kubernetes的Deployments部署的详情", pointer.GetKubernetesDeploymentInfoByName)
 	pointer.service.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", pointer.CreateKubernetesDeployment)
 	pointer.service.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", pointer.DeleteKubernetesDeployment)
-	pointer.service.POST("GetKubernetesPodLog", "v1", "get/kubernetes/pod/log", 3, true, "获取kubernetes的pod日志", pointer.GetKubernetesPodLog)
+	pointer.service.GET("GetKubernetesPodLog", "v1", "get/kubernetes/pod/log", 3, true, "获取kubernetes的pod日志", pointer.GetKubernetesPodLog)
 }
-
-//APIService API服务
-// type _APIService struct {
-// 	method  *serviceinfo.API
-// 	name    string
-// 	explain string
-// 	count   int32
-// }
 
 //buildEvent 编译事件
 type buildEvent struct {
@@ -85,6 +79,7 @@ type API struct {
 	cfg        *cfg.Config
 	docker     *client.Client
 	mysql      *mysql.Mysql
+	etcd       *etcd.Etcd
 	snowflake  *snowflake.SnowFlake
 	cache      *cache.Cache
 	clientSet  *kubernetes.Clientset
@@ -138,6 +133,8 @@ func NewService() *API {
 	)
 	//初始化缓存
 	ctl.cache = cache.NewCache(ctl.cfg)
+	//初始化etcd
+	ctl.etcd = etcd.NewEtcd(ctl.cfg)
 	//初始化雪花算法
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(ctl.cfg.GetHost()).To4())
@@ -161,6 +158,7 @@ func NewService() *API {
 //Run 启动
 func (pointer *API) Run() error {
 	err := pointer.service.Run()
+	pointer.etcd.Close()
 	pointer.wait.Wait()
 	pointer.closeEvent <- true
 	return err
@@ -592,11 +590,11 @@ func (pointer *API) _EventExecution() {
 }
 
 //_PuseMsgToAdmin 给admin推送消息
-func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) {
+func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) error {
 	admin := new(table.Admin)
 	if e := pointer.cache.GetCache().Get(token, admin); e != nil {
 		//用户下线了,不推送任何消息
-		return
+		return errors.New("token fail")
 	}
 	ctx := context.Background()
 	ctx.SetIsTest(false)
@@ -608,6 +606,7 @@ func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) {
 		Msg:   msg,
 	}, &gateParam.PushRes{}); e != nil {
 		log.Warnln(e.Error())
-		return
+		return e
 	}
+	return nil
 }

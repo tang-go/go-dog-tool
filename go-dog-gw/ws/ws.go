@@ -140,7 +140,7 @@ func (c *client) run() {
 			log.Errorln(err.Error())
 			return
 		}
-		if count/4 == 0 {
+		if count%4 == 0 {
 			count = 0
 			if err := c.ws._Online(c.token); err != nil {
 				c.conn.Close()
