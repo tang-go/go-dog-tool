@@ -3,8 +3,7 @@ package service
 import (
 	"fmt"
 	"omo-service/define"
-	"
-	param"
+	"omo-service/services/auth/param"
 	"time"
 
 	"github.com/tang-go/go-dog/lib/md5"
