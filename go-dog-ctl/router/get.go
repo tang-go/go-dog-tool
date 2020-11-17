@@ -8,6 +8,7 @@ import (
 func GETRouter(s *service.Service) {
 	s.GET("GetCode", "v1", "get/code", 3, false, "获取图片验证码", s.GetCode)
 	s.GET("GetAdminInfo", "v1", "get/admin/info", 3, true, "获取管理员信息", s.GetAdminInfo)
+	s.GET("GetMenu", "v1", "get/menu", 3, true, "获取菜单", s.GetMenu)
 	s.GET("GetBuildServiceList", "v1", "get/build/service/list", 3, true, "获取编译发布记录", s.GetBuildServiceList)
 	s.GET("GetDockerList", "v1", "get/docker/list", 3, true, "获取docker运行服务", s.GetDockerList)
 	s.GET("GetServiceList", "v1", "get/service/list", 3, true, "获取服务列表", s.GetServiceList)

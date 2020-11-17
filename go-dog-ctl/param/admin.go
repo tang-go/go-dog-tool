@@ -6,26 +6,28 @@ type GetAdminInfoReq struct {
 
 //GetAdminInfoRes 获取用户信息返回
 type GetAdminInfoRes struct {
-	ID       string  `json:"id" description:"用户ID" type:"string"`
-	Name     string  `json:"name" description:"名称" type:"string"`
-	Avatar   string  `json:"avatar" description:"头像" type:"string"`
-	Phone    string  `json:"phone" description:"电话" type:"string"`
-	RoleID   uint    `json:"roleId" description:"权限的ID" type:"uint"`
-	RoleName string  `json:"roleName" description:"权限名称" type:"string"`
-	Menu     []*Menu `json:"menu" description:"菜单" type:"Role"`
+	ID       string      `json:"id" description:"用户ID" type:"string"`
+	Name     string      `json:"name" description:"名称" type:"string"`
+	Avatar   string      `json:"avatar" description:"头像" type:"string"`
+	Phone    string      `json:"phone" description:"电话" type:"string"`
+	RoleID   uint        `json:"roleId" description:"权限的ID" type:"uint"`
+	RoleName string      `json:"roleName" description:"权限名称" type:"string"`
+	Menu     []*RoleMenu `json:"menu" description:"菜单" type:"[]*RoleMenu"`
 }
 
-//Menu 菜单配置
-type Menu struct {
-	Url         string  `json:"url" description:"菜单路由" type:"string"`
-	Description string  `json:"description" description:"菜单描述" type:"string"`
-	Add         bool    `json:"add" description:"增加权限" type:"string"`
-	Del         bool    `json:"del" description:"删除权限" type:"string"`
-	Update      bool    `json:"update" description:"更新权限" type:"string"`
-	Select      bool    `json:"select" description:"查询权限" type:"string"`
-	Sort        uint    `json:"sort" description:"排序" type:"uint"`
-	Time        int64   `json:"time" description:"时间" type:"int64"`
-	Children    []*Menu `json:"children" json:"id" description:"子菜单" type:"[]*Menu"`
+//RoleMenu 权限菜单
+type RoleMenu struct {
+	ID       uint        `json:"id" description:"ID" type:"uint"`
+	ParentID uint        `json:"parentID" description:"父亲结点ID" type:"uint"`
+	URL      string      `json:"url" description:"菜单路由" type:"string"`
+	Describe string      `json:"describe" description:"菜单描述" type:"string"`
+	Add      bool        `json:"add" description:"增加权限" type:"string"`
+	Del      bool        `json:"del" description:"删除权限" type:"string"`
+	Update   bool        `json:"update" description:"更新权限" type:"string"`
+	Select   bool        `json:"select" description:"查询权限" type:"string"`
+	Sort     uint        `json:"sort" description:"排序" type:"uint"`
+	Time     int64       `json:"time" description:"时间" type:"int64"`
+	Children []*RoleMenu `json:"children" json:"id" description:"子菜单" type:"[]*RoleMenu"`
 }
 
 //AdminLoginReq 管理员登录

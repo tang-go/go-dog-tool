@@ -156,7 +156,7 @@ func NewService(routers ...func(*Service)) *Service {
 	return ctl
 }
 
-//RegisterRPC 	注册RPC方法
+//RPC 	注册RPC方法
 //name			方法名称
 //level			方法等级
 //isAuth		是否需要鉴权
@@ -175,15 +175,15 @@ func (s *Service) RPC(name string, level int8, isAuth bool, explain string, fn i
 //explain		方法描述
 //fn 			注册的方法
 func (s *Service) POST(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
-	// ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
-	// ctx.SetClient(s.service.GetClient())
-	// if _, err := authAPI.CreateApi(
-	// 	ctx,
-	// 	define.Organize,
-	// 	explain,
-	// 	fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
-	// 	panic(err.Error())
-	// }
+	ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
+	ctx.SetClient(s.service.GetClient())
+	if _, err := authAPI.CreateAPI(
+		ctx,
+		define.Organize,
+		explain,
+		fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
+		panic(err.Error())
+	}
 	s.service.POST(methodname, version, path, level, isAuth, explain, fn)
 }
 
@@ -196,15 +196,15 @@ func (s *Service) POST(methodname, version, path string, level int8, isAuth bool
 //explain		方法描述
 //fn 			注册的方法
 func (s *Service) GET(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
-	// ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
-	// ctx.SetClient(s.service.GetClient())
-	// if _, err := authAPI.CreateApi(
-	// 	ctx,
-	// 	define.Organize,
-	// 	explain,
-	// 	fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
-	// 	panic(err.Error())
-	// }
+	ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
+	ctx.SetClient(s.service.GetClient())
+	if _, err := authAPI.CreateAPI(
+		ctx,
+		define.Organize,
+		explain,
+		fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
+		panic(err.Error())
+	}
 	s.service.GET(methodname, version, path, level, isAuth, explain, fn)
 }
 

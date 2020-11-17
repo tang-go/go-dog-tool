@@ -22,11 +22,11 @@ type SysRoleMenu struct {
 	Time   int64 `json:"time" description:"时间" type:"int64"`
 }
 
-//SysRoleApi 系统角色API映射表
-type SysRoleApi struct {
+//SysRoleAPI 系统角色API映射表
+type SysRoleAPI struct {
 	ID     uint  `gorm:"primary_key" json:"id" description:"ID" type:"uint"`
 	RoleID uint  `json:"roleID" description:"角色ID" type:"string"`
-	ApiID  uint  `json:"apiID" description:"api的ID" type:"string"`
+	APIID  uint  `json:"apiID" description:"api的ID" type:"string"`
 	Time   int64 `json:"time" description:"时间" type:"int64"`
 }
 
@@ -41,8 +41,8 @@ type SysMenu struct {
 	Time     int64  `json:"time" description:"时间" type:"int64"`
 }
 
-//SysApi 系统API访问权限
-type SysApi struct {
+//SysAPI 系统API访问权限
+type SysAPI struct {
 	ID       uint   `gorm:"primary_key" json:"id" description:"ID" type:"uint"`
 	Organize string `json:"organize" description:"组织" type:"string"`
 	Describe string `json:"describe" description:"描述" type:"string"`

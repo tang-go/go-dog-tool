@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -16,17 +17,17 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
-//MenuSort 菜单排序
-type MenuSort []*param.Menu
+//RoleMenuSort 菜单排序
+type RoleMenuSort []*param.RoleMenu
 
 //Len 长度
-func (m MenuSort) Len() int { return len(m) }
+func (m RoleMenuSort) Len() int { return len(m) }
 
 //Swap 交换
-func (m MenuSort) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m RoleMenuSort) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 
 //Less 比较
-func (m MenuSort) Less(i, j int) bool {
+func (m RoleMenuSort) Less(i, j int) bool {
 	if m[i].Sort == m[j].Sort {
 		return m[i].Time > m[j].Time
 	}
@@ -34,24 +35,26 @@ func (m MenuSort) Less(i, j int) bool {
 }
 
 //_AssembleMenu 组织菜单
-func (s *Service) _AssembleMenu(m *param.Menu, source []authParam.SysMenu, parentID uint) {
+func (s *Service) _AssembleRoleMenu(m *param.RoleMenu, source []authParam.RoleMenu, parentID uint) {
 	for _, menu := range source {
 		if menu.ParentID == parentID {
-			nm := param.Menu{
-				Url:         menu.URL,
-				Add:         menu.Add,
-				Description: menu.Describe,
-				Del:         menu.Del,
-				Update:      menu.Update,
-				Select:      menu.Select,
-				Sort:        menu.Sort,
-				Time:        menu.Time,
+			nm := param.RoleMenu{
+				ID:       menu.ID,
+				ParentID: menu.ParentID,
+				URL:      menu.URL,
+				Add:      menu.Add,
+				Describe: menu.Describe,
+				Del:      menu.Del,
+				Update:   menu.Update,
+				Select:   menu.Select,
+				Sort:     menu.Sort,
+				Time:     menu.Time,
 			}
-			s._AssembleMenu(&nm, source, menu.ID)
+			s._AssembleRoleMenu(&nm, source, menu.ID)
 			m.Children = append(m.Children, &nm)
 		}
 	}
-	sort.Sort(MenuSort(m.Children))
+	sort.Sort(RoleMenuSort(m.Children))
 	return
 }
 
@@ -80,23 +83,26 @@ func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoRe
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
 		return
 	}
+	fmt.Println(menus)
 	for _, menu := range menus {
 		if menu.ParentID == 0 {
-			nm := param.Menu{
-				Url:         menu.URL,
-				Description: menu.Describe,
-				Add:         menu.Add,
-				Del:         menu.Del,
-				Update:      menu.Update,
-				Select:      menu.Select,
-				Sort:        menu.Sort,
-				Time:        menu.Time,
+			nm := param.RoleMenu{
+				ID:       menu.ID,
+				ParentID: menu.ParentID,
+				URL:      menu.URL,
+				Describe: menu.Describe,
+				Add:      menu.Add,
+				Del:      menu.Del,
+				Update:   menu.Update,
+				Select:   menu.Select,
+				Sort:     menu.Sort,
+				Time:     menu.Time,
 			}
-			s._AssembleMenu(&nm, menus, menu.ID)
+			s._AssembleRoleMenu(&nm, menus, menu.ID)
 			response.Menu = append(response.Menu, &nm)
 		}
 	}
-	sort.Sort(MenuSort(response.Menu))
+	sort.Sort(RoleMenuSort(response.Menu))
 	response.RoleID = role.ID
 	response.RoleName = role.Name
 	return

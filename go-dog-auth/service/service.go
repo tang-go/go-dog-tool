@@ -36,9 +36,9 @@ func NewService(routers ...func(*Service)) *Service {
 		//系统角色菜单表
 		table.SysMenu{},
 		//系统角色api映射表
-		table.SysRoleApi{},
+		table.SysRoleAPI{},
 		//系统角色api表
-		table.SysApi{},
+		table.SysAPI{},
 	)
 	//初始化缓存
 	s.cache = cache.NewCache(s.service.GetClient().GetCfg())

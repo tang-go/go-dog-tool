@@ -28,7 +28,7 @@ func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq)
 			return
 		}
 		for _, menu := range menus {
-			response.SysMenu = append(response.SysMenu, param.SysMenu{
+			response.RoleMenus = append(response.RoleMenus, param.RoleMenu{
 				ID:       menu.ID,
 				ParentID: menu.ParentID,
 				Describe: menu.Describe,
@@ -53,7 +53,7 @@ func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq)
 			if s.mysql.GetReadEngine().Where("id = ?", menu.MenuID).First(sysMenu).Error != nil {
 				continue
 			}
-			response.SysMenu = append(response.SysMenu, param.SysMenu{
+			response.RoleMenus = append(response.RoleMenus, param.RoleMenu{
 				ID:       sysMenu.ID,
 				ParentID: sysMenu.ParentID,
 				Describe: sysMenu.Describe,
@@ -70,8 +70,8 @@ func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq)
 	return
 }
 
-//GetRoleApi 获取角色Api
-func (s *Service) GetRoleApi(ctx plugins.Context, request param.GetRoleApiReq) (response param.GetRoleApiRes, err error) {
+//GetRoleAPI 获取角色API
+func (s *Service) GetRoleAPI(ctx plugins.Context, request param.GetRoleAPIReq) (response param.GetRoleAPIRes, err error) {
 	role := new(table.SysRole)
 	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.RoleID, request.Organize).First(role).Error
 	if err != nil {
@@ -81,23 +81,23 @@ func (s *Service) GetRoleApi(ctx plugins.Context, request param.GetRoleApiReq) (
 
 	if role.IsSuper {
 		//超级管理员角色直接获取所有的
-		err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&response.SysApi).Error
+		err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&response.SysAPI).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
 	} else {
-		var roleApis []table.SysRoleApi
-		err = s.mysql.GetReadEngine().Where("role_id = ?", request.RoleID).Find(&roleApis).Error
+		var roleAPIs []table.SysRoleAPI
+		err = s.mysql.GetReadEngine().Where("role_id = ?", request.RoleID).Find(&roleAPIs).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
 		var apis []uint
-		for _, api := range roleApis {
-			apis = append(apis, api.ApiID)
+		for _, api := range roleAPIs {
+			apis = append(apis, api.APIID)
 		}
-		err = s.mysql.GetReadEngine().Where("id IN (?)", apis).Find(&response.SysApi).Error
+		err = s.mysql.GetReadEngine().Where("id IN (?)", apis).Find(&response.SysAPI).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
@@ -127,7 +127,7 @@ func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (
 	return
 }
 
-//SelectRole 查询角色
+//SelectRoleByOrganize 查询角色
 func (s *Service) SelectRoleByOrganize(ctx plugins.Context, request param.SelectRoleByOrganizeReq) (response param.SelectRoleByOrganizeRes, err error) {
 	err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&response.SysRoles).Error
 	if err != nil {
@@ -168,11 +168,20 @@ func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (
 	return
 }
 
-//CreateApi 创建api
-func (s *Service) CreateApi(ctx plugins.Context, request param.CreateApiReq) (response param.CreateApiRes, err error) {
-	sysApi := new(table.SysApi)
-	if s.mysql.GetReadEngine().Where("organize = ? AND api = ?", request.Organize, request.API).First(&sysApi).RecordNotFound() == true {
-		api := table.SysApi{
+//SelectMenu 查询角色
+func (s *Service) SelectMenu(ctx plugins.Context, request param.SelectMenuReq) (response param.SelectMenuRes, err error) {
+	err = s.mysql.GetReadEngine().Where("organize = ? ", request.Organize).Find(&response.Menus).Error
+	if err != nil {
+		log.Errorln(err.Error())
+	}
+	return
+}
+
+//CreateAPI 创建api
+func (s *Service) CreateAPI(ctx plugins.Context, request param.CreateAPIReq) (response param.CreateAPIRes, err error) {
+	sysAPI := new(table.SysAPI)
+	if s.mysql.GetReadEngine().Where("organize = ? AND api = ?", request.Organize, request.API).First(&sysAPI).RecordNotFound() == true {
+		api := table.SysAPI{
 			Organize: request.Organize,
 			API:      request.API,
 			Describe: request.Describe,
@@ -185,20 +194,29 @@ func (s *Service) CreateApi(ctx plugins.Context, request param.CreateApiReq) (re
 		response.ID = api.ID
 		return
 	}
-	response.ID = sysApi.ID
+	response.ID = sysAPI.ID
 	return
 }
 
-//BindRoleApi 绑定角色api
-func (s *Service) BindRoleApi(ctx plugins.Context, request param.BindRoleApiReq) (response param.BindRoleApiRes, err error) {
+//SelectAPI 查询API
+func (s *Service) SelectAPI(ctx plugins.Context, request param.SelectAPIReq) (response param.SelectAPIRes, err error) {
+	err = s.mysql.GetReadEngine().Where("organize = ? ", request.Organize).Find(&response.APIS).Error
+	if err != nil {
+		log.Errorln(err.Error())
+	}
+	return
+}
+
+//BindRoleAPI 绑定角色api
+func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq) (response param.BindRoleAPIRes, err error) {
 	role := new(table.SysRole)
 	err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(role).Error
 	if err != nil {
 		log.Errorln(err.Error())
 		return
 	}
-	api := new(table.SysApi)
-	err = s.mysql.GetReadEngine().Where("id = ?", request.ApiID).First(api).Error
+	api := new(table.SysAPI)
+	err = s.mysql.GetReadEngine().Where("id = ?", request.APIID).First(api).Error
 	if err != nil {
 		log.Errorln(err.Error())
 		return
@@ -207,21 +225,21 @@ func (s *Service) BindRoleApi(ctx plugins.Context, request param.BindRoleApiReq)
 		err = errors.New("不是跨组织绑定")
 		return
 	}
-	if s.mysql.GetReadEngine().Where("role_id = ? AND api_id = ?", request.RoleID, request.ApiID).First(&table.SysRoleApi{}).RecordNotFound() == true {
+	if s.mysql.GetReadEngine().Where("role_id = ? AND api_id = ?", request.RoleID, request.APIID).First(&table.SysRoleAPI{}).RecordNotFound() == true {
 		if err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(&table.SysRole{}).Error; err != nil {
 			log.Errorln(err.Error())
 			return
 		}
-		if err = s.mysql.GetReadEngine().Where("id = ?", request.ApiID).First(&table.SysApi{}).Error; err != nil {
+		if err = s.mysql.GetReadEngine().Where("id = ?", request.APIID).First(&table.SysAPI{}).Error; err != nil {
 			log.Errorln(err.Error())
 			return
 		}
-		roleApi := table.SysRoleApi{
+		roleAPI := table.SysRoleAPI{
 			RoleID: request.RoleID,
-			ApiID:  request.ApiID,
+			APIID:  request.APIID,
 			Time:   time.Now().Unix(),
 		}
-		if err = s.mysql.GetWriteEngine().Create(&roleApi).Error; err != nil {
+		if err = s.mysql.GetWriteEngine().Create(&roleAPI).Error; err != nil {
 			log.Errorln(err.Error())
 			return
 		}
@@ -250,7 +268,7 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 		err = errors.New("不是跨组织绑定")
 		return
 	}
-	if s.mysql.GetReadEngine().Where("role_id = ? AND menu_id = ?", request.RoleID, request.MenuID).First(&table.SysRoleApi{}).RecordNotFound() == true {
+	if s.mysql.GetReadEngine().Where("role_id = ? AND menu_id = ?", request.RoleID, request.MenuID).First(&table.SysRoleAPI{}).RecordNotFound() == true {
 		if err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(&table.SysRole{}).Error; err != nil {
 			log.Errorln(err.Error())
 			return

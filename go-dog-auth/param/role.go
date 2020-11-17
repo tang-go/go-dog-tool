@@ -2,31 +2,6 @@ package param
 
 import "github.com/tang-go/go-dog-tool/go-dog-auth/table"
 
-//CreateTokenReq 创建token
-type CreateTokenReq struct {
-	Organize string `json:"organize" description:"组织" type:"string"`
-	Key      string `json:"key" description:"关键值" type:"string"`
-	Value    string `json:"value" description:"值" type:"string"`
-}
-
-//CreateTokenRes 创建token
-type CreateTokenRes struct {
-	Token string `json:"token" description:"token" type:"string"`
-}
-
-//VerifyTokenReq 验证token
-type VerifyTokenReq struct {
-	Organize string `json:"organize" description:"组织" type:"string"`
-	Token    string `json:"token" description:"token" type:"string"`
-}
-
-//CreateTokenReq 创建token
-type VerifyTokenRes struct {
-	Organize string `json:"organize" description:"组织" type:"string"`
-	Key      string `json:"key" description:"关键值" type:"string"`
-	Value    string `json:"value" description:"值" type:"string"`
-}
-
 //GetRoleMenuReq 获取角色菜单请求
 type GetRoleMenuReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
@@ -35,11 +10,11 @@ type GetRoleMenuReq struct {
 
 //GetRoleMenuRes 获取角色菜单响应
 type GetRoleMenuRes struct {
-	SysMenu []SysMenu `json:"SysMenu" description:"菜单列表" type:"[]SysMenu"`
+	RoleMenus []RoleMenu `json:"roleMenus" description:"菜单列表" type:"[]RoleMenu"`
 }
 
-//SysMenu 系统菜单表
-type SysMenu struct {
+//RoleMenu 权限菜单表
+type RoleMenu struct {
 	ID       uint   `gorm:"primary_key" json:"id" description:"ID" type:"uint"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	URL      string `json:"url" description:"菜单URL" type:"string"`
@@ -52,15 +27,15 @@ type SysMenu struct {
 	Time     int64  `json:"time" description:"时间" type:"int64"`
 }
 
-//GetRoleApiReq 获取角色api请求
-type GetRoleApiReq struct {
+//GetRoleAPIReq 获取角色api请求
+type GetRoleAPIReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
 	RoleID   uint   `json:"roleID" description:"角色ID" type:"string"`
 }
 
-//GetRoleApiRes 获取角色api响应
-type GetRoleApiRes struct {
-	SysApi []table.SysApi `json:"sysApi" description:"api列表" type:"[]table.SysApi"`
+//GetRoleAPIRes 获取角色api响应
+type GetRoleAPIRes struct {
+	SysAPI []table.SysAPI `json:"sysAPI" description:"api列表" type:"[]table.SysAPI"`
 }
 
 //CreateRoleReq 创建普通角色请求
@@ -97,6 +72,16 @@ type SelectRoleByIDRes struct {
 	SysRole table.SysRole `json:"sysRole" description:"系统角色" type:" table.SysRole"`
 }
 
+//SelectMenuReq 获取菜单
+type SelectMenuReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+}
+
+//SelectMenuRes 获取菜单
+type SelectMenuRes struct {
+	Menus []table.SysMenu `json:"menus" description:"菜单" type:"[]table.SysMenu"`
+}
+
 //CreateMenuReq 创建菜单请求
 type CreateMenuReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
@@ -111,15 +96,25 @@ type CreateMenuRes struct {
 	ID uint `json:"id" description:"ID" type:"uint"`
 }
 
-//CreateApiReq 创建api请求
-type CreateApiReq struct {
+//SelectAPIReq 获取API
+type SelectAPIReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+}
+
+//SelectAPIRes 获取API
+type SelectAPIRes struct {
+	APIS []table.SysAPI `json:"apis" description:"菜单" type:"[]table.SysAPI"`
+}
+
+//CreateAPIReq 创建api请求
+type CreateAPIReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	API      string `json:"api" description:"api接口" type:"string"`
 }
 
-//CreateApiRes 创建api请求
-type CreateApiRes struct {
+//CreateAPIRes 创建api请求
+type CreateAPIRes struct {
 	ID uint `json:"id" description:"ID" type:"uint"`
 }
 
@@ -138,13 +133,13 @@ type BindRoleMenuRes struct {
 	Success bool `json:"success" description:"结果" type:"bool"`
 }
 
-//BindRoleApiReq 绑定api菜单
-type BindRoleApiReq struct {
+//BindRoleAPIReq 绑定api菜单
+type BindRoleAPIReq struct {
 	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
-	ApiID  uint `json:"apiID" description:"api的ID" type:"string"`
+	APIID  uint `json:"apiID" description:"api的ID" type:"string"`
 }
 
-//BindRoleApiRes 绑定api菜单
-type BindRoleApiRes struct {
+//BindRoleAPIRes 绑定api菜单
+type BindRoleAPIRes struct {
 	Success bool `json:"success" description:"结果" type:"bool"`
 }
