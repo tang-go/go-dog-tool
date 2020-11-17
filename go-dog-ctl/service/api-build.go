@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"strconv"
@@ -14,19 +14,19 @@ import (
 )
 
 //GetBuildServiceList 获取编译发布记录
-func (pointer *API) GetBuildServiceList(ctx plugins.Context, request param.GetBuildServiceReq) (response param.GetBuildServiceRes, err error) {
+func (s *Service) GetBuildServiceList(ctx plugins.Context, request param.GetBuildServiceReq) (response param.GetBuildServiceRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
 	if ok == false {
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
 	var builds []table.BuildService
-	if e := pointer.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Limit(request.PageSize).Offset((request.PageNo - 1) * request.PageSize).Order("time DESC").Find(&builds).Error; e != nil {
+	if e := s.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Limit(request.PageSize).Offset((request.PageNo - 1) * request.PageSize).Order("time DESC").Find(&builds).Error; e != nil {
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, e.Error())
 		return
 	}
 	total := 0
-	if e := pointer.mysql.GetReadEngine().Model(&table.BuildService{}).Where("owner_id = ?", admin.OwnerID).Order("time DESC").Count(&total).Error; e != nil {
+	if e := s.mysql.GetReadEngine().Model(&table.BuildService{}).Where("owner_id = ?", admin.OwnerID).Order("time DESC").Count(&total).Error; e != nil {
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, e.Error())
 		return
 	}
@@ -57,7 +57,7 @@ func (pointer *API) GetBuildServiceList(ctx plugins.Context, request param.GetBu
 }
 
 //BuildService 编译发布docker镜像
-func (pointer *API) BuildService(ctx plugins.Context, request param.BuildServiceReq) (response param.BuildServiceRes, err error) {
+func (s *Service) BuildService(ctx plugins.Context, request param.BuildServiceReq) (response param.BuildServiceRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
 	if ok == false {
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
@@ -71,7 +71,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	}
 	//添加编译记录
 	tbBuild := table.BuildService{
-		ID:      pointer.snowflake.GetID(),
+		ID:      s.snowflake.GetID(),
 		AdminID: admin.AdminID,
 		Status:  false,
 		Image:   request.Harbor + "/" + request.Name + ":" + request.Version,
@@ -81,7 +81,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 	//生成登录记录
 	tbLog := &table.Log{
 		//日志ID
-		LogID: pointer.snowflake.GetID(),
+		LogID: s.snowflake.GetID(),
 		//类型
 		Type: table.BuildServiceType,
 		//操作人
@@ -102,7 +102,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		Time: time.Now().Unix(),
 	}
 	//开启数据库操作
-	tx := pointer.mysql.GetWriteEngine().Begin()
+	tx := s.mysql.GetWriteEngine().Begin()
 	if e := tx.Create(&tbBuild).Error; e != nil {
 		tx.Rollback()
 		log.Errorln(e.Error())
@@ -116,7 +116,7 @@ func (pointer *API) BuildService(ctx plugins.Context, request param.BuildService
 		return
 	}
 	tx.Commit()
-	go pointer._SendEvent(tbBuild.ID, ctx, &request)
+	go s._SendEvent(tbBuild.ID, ctx, &request)
 	response.Success = true
 	return
 }

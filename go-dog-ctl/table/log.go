@@ -9,6 +9,8 @@ const (
 	CloseDockerType
 	//StartDockerType 启动docker服务
 	StartDockerType
+	//CreateMenuType 创建菜单
+	CreateMenuType
 )
 
 //Log 日志

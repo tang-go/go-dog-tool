@@ -1,6 +1,6 @@
 {
   //服务名称
-  "server_name": "gateway",
+  "server_name": "go-dog-gw",
   //说明
   "explain": "网管",
   //服务发现

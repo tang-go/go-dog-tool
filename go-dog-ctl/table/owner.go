@@ -5,9 +5,9 @@ const (
 	OwnerDisable = true
 	//OwnerAvailable 业主可用
 	OwnerAvailable = false
-	//IsAdminOwner 是超级业主
+	//IsAdminOwner 是否是系统业主
 	IsAdminOwner = true
-	//NoAdminOwner 不是超级业主
+	//NoAdminOwner 不是系统业主
 	NoAdminOwner = false
 )
 
@@ -25,6 +25,8 @@ type Owner struct {
 	IsDisable bool
 	//是否是超级业主
 	IsAdminOwner bool
+	//角色
+	RoleID uint
 	//注册时间
 	Time int64
 }

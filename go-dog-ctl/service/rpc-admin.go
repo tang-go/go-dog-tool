@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"github.com/tang-go/go-dog-tool/define"
@@ -9,7 +9,7 @@ import (
 )
 
 //AdminOnline 管理员上线
-func (pointer *API) AdminOnline(ctx plugins.Context, request param.AdminOnlineReq) (response param.AdminOnlineRes, err error) {
+func (s *Service) AdminOnline(ctx plugins.Context, request param.AdminOnlineReq) (response param.AdminOnlineRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
 	if ok == false {
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
@@ -25,13 +25,13 @@ func (pointer *API) AdminOnline(ctx plugins.Context, request param.AdminOnlineRe
 	admin.GateAddress = request.Address
 	admin.IsOnline = true
 	//生成token缓存
-	pointer.cache.GetCache().SetByTime(ctx.GetToken(), admin, define.AdminTokenValidityTime)
+	s.cache.GetCache().SetByTime(ctx.GetToken(), admin, define.AdminTokenValidityTime)
 	response.Success = true
 	return
 }
 
 //AdminOffline 管理员下线
-func (pointer *API) AdminOffline(ctx plugins.Context, request param.AdminOfflineReq) (response param.AdminOfflineRes, err error) {
+func (s *Service) AdminOffline(ctx plugins.Context, request param.AdminOfflineReq) (response param.AdminOfflineRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
 	if ok == false {
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
@@ -42,7 +42,7 @@ func (pointer *API) AdminOffline(ctx plugins.Context, request param.AdminOffline
 		admin.GateAddress = ""
 		admin.IsOnline = false
 		//生成token缓存
-		pointer.cache.GetCache().Del(ctx.GetToken())
+		s.cache.GetCache().Del(ctx.GetToken())
 	}
 	response.Success = true
 	return

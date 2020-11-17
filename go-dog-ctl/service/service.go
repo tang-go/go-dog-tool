@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"archive/tar"
@@ -23,6 +23,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/tang-go/go-dog-tool/define"
+	authAPI "github.com/tang-go/go-dog-tool/go-dog-auth/api"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/cfg"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
@@ -45,27 +46,8 @@ import (
 )
 
 //Router 注册路由
-func (pointer *API) Router() {
-	pointer.service.RPC("AdminOnline", 3, true, "管理员上线", pointer.AdminOnline)
-	pointer.service.RPC("AdminOffline", 3, true, "管理员下线", pointer.AdminOffline)
-	pointer.service.GET("GetCode", "v1", "get/code", 3, false, "获取图片验证码", pointer.GetCode)
-	pointer.service.POST("AdminLogin", "v1", "admin/login", 3, false, "管理员登录", pointer.AdminLogin)
-	pointer.service.GET("GetAdminInfo", "v1", "get/admin/info", 3, true, "获取管理员信息", pointer.GetAdminInfo)
-	pointer.service.GET("GetRoleList", "v1", "get/role/list", 3, true, "获取角色列表", pointer.GetRoleList)
-	pointer.service.GET("GetBuildServiceList", "v1", "get/build/service/list", 3, true, "获取编译发布记录", pointer.GetBuildServiceList)
-	pointer.service.POST("BuildService", "v1", "build/service", 3, true, "编译发布服务", pointer.BuildService)
-	pointer.service.GET("GetDockerList", "v1", "get/docker/list", 3, true, "获取docker运行服务", pointer.GetDockerList)
-	pointer.service.POST("StartDocker", "v1", "strat/docker", 3, true, "docker方式启动服务", pointer.StartDocker)
-	pointer.service.POST("CloseDocker", "v1", "clsoe/docker", 3, true, "关闭docker服务", pointer.CloseDocker)
-	pointer.service.POST("DelDocker", "v1", "del/docker", 3, true, "删除docker服务", pointer.DelDocker)
-	pointer.service.POST("RestartDocker", "v1", "restart/docker", 3, true, "重启docker服务", pointer.RestartDocker)
-	pointer.service.GET("GetServiceList", "v1", "get/service/list", 3, true, "获取服务列表", pointer.GetServiceList)
-	pointer.service.GET("GetKubernetesNameSpace", "v1", "get/kubernetes/namespace", 3, true, "获取k8s的namespace", pointer.GetKubernetesNameSpace)
-	pointer.service.GET("GetKubernetesDeployments", "v1", "get/kubernetes/deployments", 3, true, "获取kubernetes的Deployments部署", pointer.GetKubernetesDeployments)
-	pointer.service.GET("GetKubernetesDeploymentInfoByName", "v1", "get/kubernetes/deployment/info/by/name", 3, true, "根据Name获取kubernetes的Deployments部署的详情", pointer.GetKubernetesDeploymentInfoByName)
-	pointer.service.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", pointer.CreateKubernetesDeployment)
-	pointer.service.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", pointer.DeleteKubernetesDeployment)
-	pointer.service.GET("GetKubernetesPodLog", "v1", "get/kubernetes/pod/log", 3, true, "获取kubernetes的pod日志", pointer.GetKubernetesPodLog)
+func (s *Service) Router() {
+
 }
 
 //write 实现
@@ -92,8 +74,8 @@ type buildEvent struct {
 	buildID int64
 }
 
-//API 控制服务
-type API struct {
+//Service 控制服务
+type Service struct {
 	service    plugins.Service
 	cfg        *cfg.Config
 	docker     *client.Client
@@ -108,8 +90,8 @@ type API struct {
 }
 
 //NewService 初始化服务
-func NewService() *API {
-	ctl := new(API)
+func NewService(routers ...func(*Service)) *Service {
+	ctl := new(Service)
 	//初始化日志
 	ctl.cfg = cfg.NewConfig()
 	//初始化k8s
@@ -143,9 +125,6 @@ func NewService() *API {
 	ctl.mysql.GetWriteEngine().AutoMigrate(
 		table.Admin{},
 		table.Owner{},
-		table.OwnerRole{},
-		table.Permission{},
-		table.RolePermission{},
 		table.BuildService{},
 		table.Docker{},
 		table.Log{},
@@ -162,8 +141,11 @@ func NewService() *API {
 		panic(err)
 	}
 	ctl.snowflake = snowflake.NewSnowFlake(id)
-	//初始化API
-	ctl.Router()
+	//初始化Service
+	//初始化路由
+	for _, router := range routers {
+		router(ctl)
+	}
 	//初始化数据库数据
 	ctl._InitMysql(ctl.cfg.GetPhone(), ctl.cfg.GetPwd())
 	//启动事件执行器
@@ -174,48 +156,107 @@ func NewService() *API {
 	return ctl
 }
 
+//RegisterRPC 	注册RPC方法
+//name			方法名称
+//level			方法等级
+//isAuth		是否需要鉴权
+//explain		方法说明
+//fn			注册的方法
+func (s *Service) RPC(name string, level int8, isAuth bool, explain string, fn interface{}) {
+	s.service.RPC(name, level, isAuth, explain, fn)
+}
+
+//POST 			注册POST方法
+//methodname 	Service方法名称
+//version 		Service方法版本
+//path 			Service路由
+//level 		Service等级
+//isAuth 		是否需要鉴权
+//explain		方法描述
+//fn 			注册的方法
+func (s *Service) POST(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
+	// ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
+	// ctx.SetClient(s.service.GetClient())
+	// if _, err := authAPI.CreateApi(
+	// 	ctx,
+	// 	define.Organize,
+	// 	explain,
+	// 	fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
+	// 	panic(err.Error())
+	// }
+	s.service.POST(methodname, version, path, level, isAuth, explain, fn)
+}
+
+//GET GET方法
+//methodname 	Service方法名称
+//version 		Service方法版本
+//path 			Service路由
+//level 		Service等级
+//isAuth 		是否需要鉴权
+//explain		方法描述
+//fn 			注册的方法
+func (s *Service) GET(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
+	// ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
+	// ctx.SetClient(s.service.GetClient())
+	// if _, err := authAPI.CreateApi(
+	// 	ctx,
+	// 	define.Organize,
+	// 	explain,
+	// 	fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
+	// 	panic(err.Error())
+	// }
+	s.service.GET(methodname, version, path, level, isAuth, explain, fn)
+}
+
 //Run 启动
-func (pointer *API) Run() error {
-	err := pointer.service.Run()
-	pointer.etcd.Close()
-	pointer.wait.Wait()
-	pointer.closeEvent <- true
+func (s *Service) Run() error {
+	err := s.service.Run()
+	s.etcd.Close()
+	s.wait.Wait()
+	s.closeEvent <- true
 	return err
 }
 
 //_InitMysql 第一次加载初始化数据库数据
-func (pointer *API) _InitMysql(phone, pwd string) {
+func (s *Service) _InitMysql(phone, pwd string) {
+	//添加系统菜单
+	ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(10)))
+	ctx.SetClient(s.service.GetClient())
+	_, err := authAPI.CreateMenu(ctx, define.Organize, "首页", "/index", 0, 100000)
+	if err != nil {
+		panic(err.Error())
+	}
+	powerID, err := authAPI.CreateMenu(ctx, define.Organize, "权限管理", "/power", 0, 0)
+	if err != nil {
+		panic(err.Error())
+	}
+	_, err = authAPI.CreateMenu(ctx, define.Organize, "菜单管理", "/power/menu", powerID, 0)
+	if err != nil {
+		panic(err.Error())
+	}
 	//读取是否有业主了
 	owner := new(table.Owner)
-	if pointer.mysql.GetReadEngine().Where("phone = ?", phone).First(owner).RecordNotFound() == false {
+	if s.mysql.GetReadEngine().Where("phone = ?", phone).First(owner).RecordNotFound() == false {
 		return
 	}
+	//调用权限服务创建一个角色
+	roleID, err := authAPI.CreateRole(ctx, define.Organize, "超级业主", "超级业主", true)
+	if err != nil {
+		panic(err.Error())
+	}
 	//如果没有业主则新增默认业主
-	owner.OwnerID = pointer.snowflake.GetID()
-	owner.Name = "超级业主"
+	owner.OwnerID = s.snowflake.GetID()
+	owner.Name = "系统业主"
 	owner.Phone = phone
 	owner.Level = 1
 	owner.IsDisable = table.OwnerAvailable
 	owner.IsAdminOwner = table.IsAdminOwner
+	owner.RoleID = roleID
 	owner.Time = time.Now().Unix()
-	//超级管理员
-	ownerRole := &table.OwnerRole{
-		RoleID: pointer.snowflake.GetID(),
-		//角色名称
-		Name: "admin",
-		//角色描述
-		Description: "系统自带的超级管理员",
-		//是否为超级管理员
-		IsAdmin: table.IsAdmin,
-		//业主ID
-		OwnerID: owner.OwnerID,
-		//角色创建时间
-		Time: owner.Time,
-	}
 	//管理员
 	admin := &table.Admin{
 		//账号 唯一主键
-		AdminID: pointer.snowflake.GetID(),
+		AdminID: s.snowflake.GetID(),
 		//名称
 		Name: "admin",
 		//电话
@@ -228,20 +269,16 @@ func (pointer *API) _InitMysql(phone, pwd string) {
 		OwnerID: owner.OwnerID,
 		//是否被禁用
 		IsDisable: table.AdminAvailable,
-		//类型
-		RoleID: ownerRole.RoleID,
+		//管理员绑定角色
+		RoleID: roleID,
 		//注册事件
 		Time: owner.Time,
 	}
 	//生成密码
 	admin.Pwd = md5.Md5(md5.Md5(pwd) + admin.Salt)
 	//开启数据库操作
-	tx := pointer.mysql.GetWriteEngine().Begin()
+	tx := s.mysql.GetWriteEngine().Begin()
 	if err := tx.Create(owner).Error; err != nil {
-		tx.Rollback()
-		panic(err)
-	}
-	if err := tx.Create(ownerRole).Error; err != nil {
 		tx.Rollback()
 		panic(err)
 	}
@@ -253,34 +290,34 @@ func (pointer *API) _InitMysql(phone, pwd string) {
 }
 
 // Set 设置验证码ID
-func (pointer *API) Set(id string, value string) {
-	if err := pointer.cache.GetCache().SetByTime(id, value, define.CodeValidityTime); err != nil {
+func (s *Service) Set(id string, value string) {
+	if err := s.cache.GetCache().SetByTime(id, value, define.CodeValidityTime); err != nil {
 		log.Errorln(err.Error())
 	}
 }
 
 // Get 更具验证ID获取验证码
-func (pointer *API) Get(id string, clear bool) (vali string) {
-	err := pointer.cache.GetCache().Get(id, &vali)
+func (s *Service) Get(id string, clear bool) (vali string) {
+	err := s.cache.GetCache().Get(id, &vali)
 	if err != nil {
 		log.Errorln(err.Error())
 	}
 	if clear {
-		pointer.cache.GetCache().Del(id)
+		s.cache.GetCache().Del(id)
 	}
 	return
 }
 
 //Verify 验证验证码
-func (pointer *API) Verify(id, answer string, clear bool) bool {
-	vali := pointer.Get(id, clear)
+func (s *Service) Verify(id, answer string, clear bool) bool {
+	vali := s.Get(id, clear)
 	if strings.ToLower(vali) != strings.ToLower(answer) {
 		return false
 	}
 	return true
 }
 
-func (pointer *API) _RunInLinux(cmd string, success func(string), fail func(string)) error {
+func (s *Service) _RunInLinux(cmd string, success func(string), fail func(string)) error {
 	c := exec.Command("sh", "-c", cmd)
 	stdout, err := c.StdoutPipe()
 	if err != nil {
@@ -315,7 +352,7 @@ func (pointer *API) _RunInLinux(cmd string, success func(string), fail func(stri
 	return nil
 }
 
-func (pointer *API) _PathExists(path string) (bool, error) {
+func (s *Service) _PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil
@@ -327,7 +364,7 @@ func (pointer *API) _PathExists(path string) (bool, error) {
 }
 
 //BuildImage 编译镜像
-func (pointer *API) _BuildImage(tarFile, project, imageName string, success func(string)) error {
+func (s *Service) _BuildImage(tarFile, project, imageName string, success func(string)) error {
 	dockerBuildContext, err := os.Open(tarFile)
 	if err != nil {
 		return err
@@ -341,7 +378,7 @@ func (pointer *API) _BuildImage(tarFile, project, imageName string, success func
 			project: "project",
 		},
 	}
-	output, err := pointer.docker.ImageBuild(context.Background(), dockerBuildContext, buildOptions)
+	output, err := s.docker.ImageBuild(context.Background(), dockerBuildContext, buildOptions)
 	if err != nil {
 		return err
 	}
@@ -353,12 +390,12 @@ func (pointer *API) _BuildImage(tarFile, project, imageName string, success func
 }
 
 //_CloseDocker 关闭镜像
-func (pointer *API) _CloseDocker(id string) error {
-	err := pointer.docker.ContainerStop(context.Background(), id, nil)
+func (s *Service) _CloseDocker(id string) error {
+	err := s.docker.ContainerStop(context.Background(), id, nil)
 	if err != nil {
 		return err
 	}
-	err = pointer.docker.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
+	err = s.docker.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -366,7 +403,7 @@ func (pointer *API) _CloseDocker(id string) error {
 }
 
 //PushImage 推送镜像
-func (pointer *API) _PushImage(registryUser, registryPassword, image string, success func(string)) error {
+func (s *Service) _PushImage(registryUser, registryPassword, image string, success func(string)) error {
 	config := types.ImagePushOptions{}
 	if len(registryUser) > 0 || len(registryPassword) > 0 {
 		authConfig := types.AuthConfig{
@@ -380,7 +417,7 @@ func (pointer *API) _PushImage(registryUser, registryPassword, image string, suc
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		config.RegistryAuth = authStr
 	}
-	out, err := pointer.docker.ImagePush(context.Background(), image, config)
+	out, err := s.docker.ImagePush(context.Background(), image, config)
 	if err != nil {
 		return err
 	}
@@ -392,7 +429,7 @@ func (pointer *API) _PushImage(registryUser, registryPassword, image string, suc
 }
 
 //PushImage 推送镜像
-func (pointer *API) _PullImage(registryUser, registryPassword, image string, success func(string)) error {
+func (s *Service) _PullImage(registryUser, registryPassword, image string, success func(string)) error {
 	config := types.ImagePullOptions{}
 	if registryUser != "" || registryPassword != "" {
 		authConfig := types.AuthConfig{
@@ -406,7 +443,7 @@ func (pointer *API) _PullImage(registryUser, registryPassword, image string, suc
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 		config.RegistryAuth = authStr
 	}
-	out, err := pointer.docker.ImagePull(context.Background(), image, config)
+	out, err := s.docker.ImagePull(context.Background(), image, config)
 	if err != nil {
 		return err
 	}
@@ -418,7 +455,7 @@ func (pointer *API) _PullImage(registryUser, registryPassword, image string, suc
 }
 
 //_CreateTar 打包tar
-func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool) error {
+func (s *Service) _CreateTar(filesource, filetarget string, deleteIfExist bool) error {
 	tarfile, err := os.Create(filetarget)
 	if err != nil {
 		if err == os.ErrExist {
@@ -443,12 +480,12 @@ func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool
 			return err
 		}
 		if !sfileInfo.IsDir() {
-			if err := pointer._TarFile(f.Name(), path, sfileInfo, tarwriter); err != nil {
+			if err := s._TarFile(f.Name(), path, sfileInfo, tarwriter); err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
 		} else {
-			if err := pointer._TarFolder(path, tarwriter); err != nil {
+			if err := s._TarFolder(path, tarwriter); err != nil {
 				log.Errorln(err.Error())
 				return err
 			}
@@ -458,7 +495,7 @@ func (pointer *API) _CreateTar(filesource, filetarget string, deleteIfExist bool
 }
 
 //_TarFile 打包文件
-func (pointer *API) _TarFile(directory string, filesource string, sfileInfo os.FileInfo, tarwriter *tar.Writer) error {
+func (s *Service) _TarFile(directory string, filesource string, sfileInfo os.FileInfo, tarwriter *tar.Writer) error {
 	sfile, err := os.Open(filesource)
 	if err != nil {
 		log.Errorln(err.Error())
@@ -484,7 +521,7 @@ func (pointer *API) _TarFile(directory string, filesource string, sfileInfo os.F
 }
 
 //_TarFolder 打包文件架
-func (pointer *API) _TarFolder(directory string, tarwriter *tar.Writer) error {
+func (s *Service) _TarFolder(directory string, tarwriter *tar.Writer) error {
 	baseFolder := filepath.Base(directory)
 	return filepath.Walk(directory, func(targetpath string, file os.FileInfo, err error) error {
 		if file == nil {
@@ -506,15 +543,15 @@ func (pointer *API) _TarFolder(directory string, tarwriter *tar.Writer) error {
 			return nil
 		}
 		fileFolder := baseFolder + "/" + file.Name()
-		return pointer._TarFile(fileFolder, targetpath, file, tarwriter)
+		return s._TarFile(fileFolder, targetpath, file, tarwriter)
 	})
 }
 
 //_SendEvent 发送事件
-func (pointer *API) _SendEvent(id int64, ctx plugins.Context, request *param.BuildServiceReq) {
-	pointer.wait.Add(1)
-	pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "正在排队进行编译，请稍等")
-	pointer.buildEvent <- &buildEvent{
+func (s *Service) _SendEvent(id int64, ctx plugins.Context, request *param.BuildServiceReq) {
+	s.wait.Add(1)
+	s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "正在排队进行编译，请稍等")
+	s.buildEvent <- &buildEvent{
 		buildID: id,
 		ctx:     ctx,
 		request: request,
@@ -522,10 +559,10 @@ func (pointer *API) _SendEvent(id int64, ctx plugins.Context, request *param.Bui
 }
 
 //_EventExecution 事件执行队列
-func (pointer *API) _EventExecution() {
+func (s *Service) _EventExecution() {
 	for {
 		select {
-		case event := <-pointer.buildEvent:
+		case event := <-s.buildEvent:
 			request := event.request
 			ctx := event.ctx
 			paths := strings.Split(request.Git, "/")
@@ -533,16 +570,16 @@ func (pointer *API) _EventExecution() {
 			image := request.Harbor + `/` + request.Name + `:` + request.Version
 			logTxt := ""
 
-			pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译 "+request.Git)
+			s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译 "+request.Git)
 			logTxt = logTxt + `开始编译<p/>`
 			if len(paths) <= 0 {
-				pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
+				s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
 				logTxt = logTxt + `路径不正确<p/>`
 			} else {
 				if _, e := git.PlainClone(name, false, &git.CloneOptions{
 					URL: request.Git,
 					Progress: newWrite(func(b []byte) {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
 						logTxt = logTxt + string(b) + `<p/>`
 					}),
 					Depth: 1,
@@ -568,34 +605,34 @@ func (pointer *API) _EventExecution() {
 					go mod tidy
 					cd ` + request.Path + `
 					` + build
-					pointer._RunInLinux(shell, func(success string) {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
+					s._RunInLinux(shell, func(success string) {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
 						logTxt = logTxt + success + `<p/>`
 					}, func(err string) {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
 						logTxt = logTxt + err + `<p/>`
 					})
 					path := fmt.Sprintf("./%s/%s", name, request.Path)
 					tarName := uuid.GetToken() + ".tar"
 					//打包
-					if e := pointer._CreateTar(path, tarName, false); e != nil {
-						pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+					if e := s._CreateTar(path, tarName, false); e != nil {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
 						logTxt = logTxt + e.Error() + `<p/>`
 					} else {
 						//编译镜像
-						if err := pointer._BuildImage("./"+tarName, "", image, func(res string) {
-							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+						if err := s._BuildImage("./"+tarName, "", image, func(res string) {
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
 							logTxt = logTxt + res + `<p/>`
 						}); err != nil {
-							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
 							logTxt = logTxt + err.Error() + `<p/>`
 						}
 						//执行push
-						if e := pointer._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
-							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+						if e := s._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
 							logTxt = logTxt + res + `<p/>`
 						}); e != nil {
-							pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
 							logTxt = logTxt + e.Error() + `<p/>`
 						}
 					}
@@ -604,14 +641,14 @@ func (pointer *API) _EventExecution() {
 					os.RemoveAll(tarName)
 				} else {
 					log.Errorln(e.Error())
-					pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
 					logTxt = logTxt + e.Error() + `<p/>`
 				}
 			}
 			//完成
-			pointer._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
+			s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "执行完成")
 			logTxt = logTxt + "执行完成" + `<p/>`
-			err := pointer.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", event.buildID).Update(
+			err := s.mysql.GetWriteEngine().Model(&table.BuildService{}).Where("id = ?", event.buildID).Update(
 				map[string]interface{}{
 					"Log":    logTxt,
 					"Status": true,
@@ -619,17 +656,17 @@ func (pointer *API) _EventExecution() {
 			if err != nil {
 				log.Errorln(err.Error())
 			}
-			pointer.wait.Done()
-		case <-pointer.closeEvent:
+			s.wait.Done()
+		case <-s.closeEvent:
 			return
 		}
 	}
 }
 
 //_PuseMsgToAdmin 给admin推送消息
-func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) error {
+func (s *Service) _PuseMsgToAdmin(token, topic, msg string) error {
 	admin := new(table.Admin)
-	if e := pointer.cache.GetCache().Get(token, admin); e != nil {
+	if e := s.cache.GetCache().Get(token, admin); e != nil {
 		//用户下线了,不推送任何消息
 		return errors.New("token fail")
 	}
@@ -637,7 +674,7 @@ func (pointer *API) _PuseMsgToAdmin(token, topic, msg string) error {
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
 	ctx.SetToken(token)
-	if e := pointer.service.GetClient().CallByAddress(context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), admin.GateAddress, define.SvcGateWay, "Push", &gateParam.PushReq{
+	if e := s.service.GetClient().CallByAddress(context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), admin.GateAddress, define.SvcGateWay, "Push", &gateParam.PushReq{
 		Token: token,
 		Topic: topic,
 		Msg:   msg,

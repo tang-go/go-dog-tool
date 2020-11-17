@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"github.com/tang-go/go-dog-tool/define"
@@ -7,8 +7,8 @@ import (
 )
 
 //GetServiceList 获取服务列表
-func (pointer *API) GetServiceList(ctx plugins.Context, req param.GetServiceReq) (res param.GetServiceRes, err error) {
-	services := pointer.service.GetClient().GetAllRPCService()
+func (s *Service) GetServiceList(ctx plugins.Context, req param.GetServiceReq) (res param.GetServiceRes, err error) {
+	services := s.service.GetClient().GetAllRPCService()
 	mp := make(map[string]*param.Services)
 	for _, service := range services {
 		if service.Name == define.SvcController {

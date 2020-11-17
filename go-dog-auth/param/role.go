@@ -1,10 +1,11 @@
 package param
 
-import "omo-service/services/auth/table"
+import "github.com/tang-go/go-dog-tool/go-dog-auth/table"
 
 //GetRoleMenuReq 获取角色菜单请求
 type GetRoleMenuReq struct {
-	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
+	Organize string `json:"organize" description:"组织" type:"string"`
+	RoleID   uint   `json:"roleID" description:"角色ID" type:"string"`
 }
 
 //GetRoleMenuRes 获取角色菜单响应
@@ -28,7 +29,8 @@ type SysMenu struct {
 
 //GetRoleApiReq 获取角色api请求
 type GetRoleApiReq struct {
-	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
+	Organize string `json:"organize" description:"组织" type:"string"`
+	RoleID   uint   `json:"roleID" description:"角色ID" type:"string"`
 }
 
 //GetRoleApiRes 获取角色api响应
@@ -49,18 +51,30 @@ type CreateRoleRes struct {
 	ID uint `json:"id" description:"ID" type:"uint"`
 }
 
-//SelectRoleReq 通过组织查询角色
-type SelectRoleReq struct {
+//SelectRoleByOrganizeReq 通过组织查询角色
+type SelectRoleByOrganizeReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
 }
 
-//CreateRoleRes 通过组织查询角色
-type SelectRoleRes struct {
-	SysRoles []table.SysRole `json:"id" description:"角色列表" type:" []table.SysRole "`
+//SelectRoleByOrganizeRes 通过组织查询角色
+type SelectRoleByOrganizeRes struct {
+	SysRoles []table.SysRole `json:"sysRoles" description:"角色列表" type:" []table.SysRole "`
+}
+
+//SelectRoleByIDReq 通过ID查询角色
+type SelectRoleByIDReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+	RoleID   uint   `json:"RoleID" description:"角色ID" type:"uint"`
+}
+
+//SelectRoleByIDRes 通过ID查询角色
+type SelectRoleByIDRes struct {
+	SysRole table.SysRole `json:"sysRole" description:"系统角色" type:" table.SysRole"`
 }
 
 //CreateMenuReq 创建菜单请求
 type CreateMenuReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	URL      string `json:"url" description:"菜单URL" type:"string"`
 	ParentID uint   `json:"parentID" description:"父菜单ID" type:"string"`
@@ -74,6 +88,7 @@ type CreateMenuRes struct {
 
 //CreateApiReq 创建api请求
 type CreateApiReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	API      string `json:"api" description:"api接口" type:"string"`
 }

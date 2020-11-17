@@ -1,9 +1,8 @@
 package service
 
 import (
-	"omo-service/define"
-	"omo-service/services/auth/table"
-
+	"github.com/tang-go/go-dog-tool/define"
+	"github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/mysql"
 	"github.com/tang-go/go-dog/pkg/service"

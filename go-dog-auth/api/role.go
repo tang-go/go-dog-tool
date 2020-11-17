@@ -1,20 +1,19 @@
 package api
 
 import (
-	"omo-service/define"
-	"omo-service/services/auth/param"
-	"omo-service/services/auth/table"
-
+	"github.com/tang-go/go-dog-tool/define"
+	"github.com/tang-go/go-dog-tool/go-dog-auth/param"
+	"github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog/log"
-
 	"github.com/tang-go/go-dog/plugins"
 )
 
 //GetRoleMenu 获取角色菜单
-func GetRoleMenu(ctx plugins.Context, roleID uint) (sysMenus []param.SysMenu, err error) {
+func GetRoleMenu(ctx plugins.Context, organize string, roleID uint) (sysMenus []param.SysMenu, err error) {
 	info := param.GetRoleMenuRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "GetRoleMenu", param.GetRoleMenuReq{
-		RoleID: roleID,
+		Organize: organize,
+		RoleID:   roleID,
 	}, &info); err != nil {
 		log.Errorln(err.Error())
 		return info.SysMenu, err
@@ -23,10 +22,11 @@ func GetRoleMenu(ctx plugins.Context, roleID uint) (sysMenus []param.SysMenu, er
 }
 
 //GetRoleApi 获取角色Api
-func GetRoleApi(ctx plugins.Context, roleID uint) (sysApis []table.SysApi, err error) {
+func GetRoleApi(ctx plugins.Context, organize string, roleID uint) (sysApis []table.SysApi, err error) {
 	info := param.GetRoleApiRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "GetRoleApi", param.GetRoleApiReq{
-		RoleID: roleID,
+		Organize: organize,
+		RoleID:   roleID,
 	}, &info); err != nil {
 		log.Errorln(err.Error())
 		return info.SysApi, err
@@ -49,10 +49,10 @@ func CreateRole(ctx plugins.Context, organize, name, describe string, isSuper bo
 	return info.ID, nil
 }
 
-//SelectRole 查询角色
-func SelectRole(ctx plugins.Context, organize string) (sysRoles []table.SysRole, err error) {
-	info := param.SelectRoleRes{}
-	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "SelectRole", param.SelectRoleReq{
+//SelectRoleByOrganize 查询角色
+func SelectRoleByOrganize(ctx plugins.Context, organize string) (sysRoles []table.SysRole, err error) {
+	info := param.SelectRoleByOrganizeRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "SelectRoleByOrganize", param.SelectRoleByOrganizeReq{
 		Organize: organize,
 	}, &info); err != nil {
 		log.Errorln(err.Error())
@@ -61,10 +61,24 @@ func SelectRole(ctx plugins.Context, organize string) (sysRoles []table.SysRole,
 	return info.SysRoles, nil
 }
 
+//SelectRoleByID 查询角色
+func SelectRoleByID(ctx plugins.Context, organize string, roleID uint) (sysRole table.SysRole, err error) {
+	info := param.SelectRoleByIDRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "SelectRoleByID", param.SelectRoleByIDReq{
+		Organize: organize,
+		RoleID:   roleID,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.SysRole, err
+	}
+	return info.SysRole, nil
+}
+
 //CreateMenu 创建菜单
-func CreateMenu(ctx plugins.Context, describe string, url string, parentID uint, sort uint) (id uint, err error) {
+func CreateMenu(ctx plugins.Context, organize string, describe string, url string, parentID uint, sort uint) (id uint, err error) {
 	info := param.CreateMenuRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "CreateMenu", param.CreateMenuReq{
+		Organize: organize,
 		Describe: describe,
 		URL:      url,
 		ParentID: parentID,
@@ -77,9 +91,10 @@ func CreateMenu(ctx plugins.Context, describe string, url string, parentID uint,
 }
 
 //CreateApi 创建api
-func CreateApi(ctx plugins.Context, describe string, api string) (id uint, err error) {
+func CreateApi(ctx plugins.Context, organize string, describe string, api string) (id uint, err error) {
 	info := param.CreateApiRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "CreateApi", param.CreateApiReq{
+		Organize: organize,
 		Describe: describe,
 		API:      api,
 	}, &info); err != nil {

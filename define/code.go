@@ -44,4 +44,6 @@ const (
 	AdminOfflineErr = 10019
 	//GetKubernetesPodLogErr 获取pod日志失败
 	GetKubernetesPodLogErr = 10020
+	//CreateMenuErr 创建菜单
+	CreateMenuErr = 10021
 )

@@ -1,10 +1,10 @@
 {
     //服务名称
-    "server_name": "auth",
+    "server_name": "go-dog-auth",
     //说明
     "explain": "验证服务",
     //端口
-    "port":6288,
+    "port":5353,
     //服务发现
     "discovery": [
       "127.0.0.1:4343"
@@ -24,7 +24,7 @@
       //数据库用户
       "db_user": "root",
       //数据库名称
-      "db_name": "admin",
+      "db_name": "go-dog-auth",
       //最大空闲连接数
       "max_idle_conns": 10,
       //最大连接数
@@ -43,7 +43,7 @@
       //数据库用户
       "db_user": "root",
       //数据库名称
-      "db_name": "admin",
+      "db_name": "go-dog-auth",
       //最大空闲连接数
       "max_idle_conns": 10,
       //最大连接数

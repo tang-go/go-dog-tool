@@ -1,6 +1,11 @@
 //Package define 定义框架常量
 package define
 
+//组织
+const (
+	Organize = "go-dog"
+)
+
 //服务定义
 const (
 	// SvcPrefix 统一前缀
@@ -13,6 +18,8 @@ const (
 	SvcController = SvcPrefix + "controller"
 	// SvcGateWay 网管服务
 	SvcGateWay = SvcPrefix + "gateway"
+	// SvcAuth 权限服务
+	SvcAuth = SvcPrefix + "auth"
 )
 
 //Aes key加密

@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"bufio"
@@ -19,8 +19,8 @@ import (
 )
 
 //GetKubernetesNameSpace 获取kubernetes的namespqce
-func (pointer *API) GetKubernetesNameSpace(ctx plugins.Context, request param.GetKubernetesNameSpaceReq) (response param.GetKubernetesNameSpaceRes, err error) {
-	namespaces, e := pointer.clientSet.CoreV1().Namespaces().List(metav1.ListOptions{})
+func (s *Service) GetKubernetesNameSpace(ctx plugins.Context, request param.GetKubernetesNameSpaceReq) (response param.GetKubernetesNameSpaceRes, err error) {
+	namespaces, e := s.clientSet.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "获取kubernetes的namespqce失败")
@@ -51,8 +51,8 @@ func (pointer *API) GetKubernetesNameSpace(ctx plugins.Context, request param.Ge
 }
 
 //GetKubernetesDeployments 获取kubernetes的Deployments部署
-func (pointer *API) GetKubernetesDeployments(ctx plugins.Context, request param.GetKubernetesDeploymentsReq) (response param.GetKubernetesDeploymentsRes, err error) {
-	deployments, e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).List(metav1.ListOptions{})
+func (s *Service) GetKubernetesDeployments(ctx plugins.Context, request param.GetKubernetesDeploymentsReq) (response param.GetKubernetesDeploymentsRes, err error) {
+	deployments, e := s.clientSet.AppsV1().Deployments(request.NameSpace).List(metav1.ListOptions{})
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesPodsByNamsespace, "获取kubernetes的Deployments部署失败")
@@ -85,8 +85,8 @@ func (pointer *API) GetKubernetesDeployments(ctx plugins.Context, request param.
 }
 
 //GetKubernetesDeploymentInfoByName 根据Name获取kubernetes的Deployments部署的详情
-func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, request param.GetKubernetesDeploymentInfoByNameReq) (response param.GetKubernetesDeploymentInfoByNameRes, err error) {
-	deployment, e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).Get(request.Name, metav1.GetOptions{})
+func (s *Service) GetKubernetesDeploymentInfoByName(ctx plugins.Context, request param.GetKubernetesDeploymentInfoByNameReq) (response param.GetKubernetesDeploymentInfoByNameRes, err error) {
+	deployment, e := s.clientSet.AppsV1().Deployments(request.NameSpace).Get(request.Name, metav1.GetOptions{})
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesDeploymentInfoByNameErr, "Deployments部署的详情失败")
@@ -108,7 +108,7 @@ func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, reque
 		LabelSelector: strings.Join(labelSelector, ","),
 	}
 	//获取service
-	if service, e := pointer.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
+	if service, e := s.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
 		response.Service.Labels = service.Labels
 		response.Service.Annotations = service.Annotations
 		response.Service.CreateTime = service.CreationTimestamp.Format("2006-01-02 15:04:05")
@@ -126,7 +126,7 @@ func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, reque
 		}
 	}
 	//获取副本集合
-	replicaSets, e := pointer.clientSet.AppsV1().ReplicaSets(request.NameSpace).List(listOptions)
+	replicaSets, e := s.clientSet.AppsV1().ReplicaSets(request.NameSpace).List(listOptions)
 	if e == nil {
 		for _, replicaSet := range replicaSets.Items {
 			response.ReplicaSets = append(response.ReplicaSets, param.ReplicaSet{
@@ -139,7 +139,7 @@ func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, reque
 		}
 	}
 	//获取pod
-	pods, e := pointer.clientSet.CoreV1().Pods(request.NameSpace).List(listOptions)
+	pods, e := s.clientSet.CoreV1().Pods(request.NameSpace).List(listOptions)
 	if e == nil {
 		for _, pod := range pods.Items {
 			//pod基本信息
@@ -155,7 +155,7 @@ func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, reque
 				RestartPolicy: string(pod.Spec.RestartPolicy),
 			}
 			//pod的事件
-			events, e := pointer.clientSet.CoreV1().Events(request.NameSpace).List(metav1.ListOptions{
+			events, e := s.clientSet.CoreV1().Events(request.NameSpace).List(metav1.ListOptions{
 				FieldSelector: "involvedObject.name=" + pod.Name,
 			})
 			if e == nil {
@@ -223,7 +223,7 @@ func (pointer *API) GetKubernetesDeploymentInfoByName(ctx plugins.Context, reque
 }
 
 //CreateKubernetesDeployment 创建k8s部署
-func (pointer *API) CreateKubernetesDeployment(ctx plugins.Context, request param.CreateKubernetesDeploymentReq) (response param.CreateKubernetesDeploymentRes, err error) {
+func (s *Service) CreateKubernetesDeployment(ctx plugins.Context, request param.CreateKubernetesDeploymentReq) (response param.CreateKubernetesDeploymentRes, err error) {
 	deployment := new(v1.Deployment)
 	deployment.Name = request.Name
 	deployment.Namespace = request.NameSpace
@@ -247,28 +247,28 @@ func (pointer *API) CreateKubernetesDeployment(ctx plugins.Context, request para
 			Args:            container.ContainerSpec.Args,
 		})
 	}
-	if _, e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).Create(deployment); e != nil {
+	if _, e := s.clientSet.AppsV1().Deployments(request.NameSpace).Create(deployment); e != nil {
 		if !k8serrors.IsAlreadyExists(e) {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.CreateKubernetesDeploymentErr, "创建部署失败")
 			return
 		}
 		//删除部署
-		if e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).Delete(deployment.Name, &metav1.DeleteOptions{}); e != nil {
+		if e := s.clientSet.AppsV1().Deployments(request.NameSpace).Delete(deployment.Name, &metav1.DeleteOptions{}); e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.CreateKubernetesDeploymentErr, "创建部署失败")
 			return
 		}
 		//重新部署
-		if _, e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).Create(deployment); e != nil {
+		if _, e := s.clientSet.AppsV1().Deployments(request.NameSpace).Create(deployment); e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.CreateKubernetesDeploymentErr, "创建部署失败")
 			return
 		}
 	}
 	//删除服务
-	if _, e := pointer.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
-		pointer.clientSet.CoreV1().Services(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{})
+	if _, e := s.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
+		s.clientSet.CoreV1().Services(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{})
 	}
 	//设置服务
 	if len(request.Service.Ports) > 0 {
@@ -288,7 +288,7 @@ func (pointer *API) CreateKubernetesDeployment(ctx plugins.Context, request para
 				TargetPort: intstr.FromInt(int(port.TargetPort)),
 			})
 		}
-		if _, e := pointer.clientSet.CoreV1().Services(request.NameSpace).Create(service); e != nil {
+		if _, e := s.clientSet.CoreV1().Services(request.NameSpace).Create(service); e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.CreateKubernetesDeploymentErr, "创建部署失败")
 			return
@@ -299,13 +299,13 @@ func (pointer *API) CreateKubernetesDeployment(ctx plugins.Context, request para
 }
 
 //DeleteKubernetesDeployment 删除k8s部署
-func (pointer *API) DeleteKubernetesDeployment(ctx plugins.Context, request param.DeleteKubernetesDeploymentReq) (response param.DeleteKubernetesDeploymentRes, err error) {
+func (s *Service) DeleteKubernetesDeployment(ctx plugins.Context, request param.DeleteKubernetesDeploymentReq) (response param.DeleteKubernetesDeploymentRes, err error) {
 	//删除服务
-	if _, e := pointer.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
-		pointer.clientSet.CoreV1().Services(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{})
+	if _, e := s.clientSet.CoreV1().Services(request.NameSpace).Get(request.Name, metav1.GetOptions{}); e == nil {
+		s.clientSet.CoreV1().Services(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{})
 	}
 	//删除部署
-	if e := pointer.clientSet.AppsV1().Deployments(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{}); e != nil {
+	if e := s.clientSet.AppsV1().Deployments(request.NameSpace).Delete(request.Name, &metav1.DeleteOptions{}); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DeleteKubernetesDeploymentErr, "删除k8s部署失败")
 		return
@@ -315,9 +315,9 @@ func (pointer *API) DeleteKubernetesDeployment(ctx plugins.Context, request para
 }
 
 //GetKubernetesPodLog 获取kubernetes的pod日志
-func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKubernetesPodLogReq) (response param.GetKubernetesPodLogRes, err error) {
+func (s *Service) GetKubernetesPodLog(ctx plugins.Context, request param.GetKubernetesPodLogReq) (response param.GetKubernetesPodLogRes, err error) {
 	key := fmt.Sprintf("k8s-pod-%s-%s", request.NameSpace, request.Name)
-	m, e := pointer.etcd.GetMutex(key)
+	m, e := s.etcd.GetMutex(key)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
@@ -335,14 +335,14 @@ func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKu
 	//释放锁
 	defer m.Unlock(ctx)
 	log.Traceln("获取到分布式锁，开始执行", key)
-	count, e := pointer.cache.GetCache().SCard(key)
+	count, e := s.cache.GetCache().SCard(key)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
 		return
 	}
 	//插入集合
-	if _, e := pointer.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
+	if _, e := s.cache.GetCache().Sadd(key, ctx.GetToken()); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetKubernetesPodLogErr, "获取日志失败")
 		return
@@ -351,7 +351,7 @@ func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKu
 	if request.TailLines <= 0 {
 		request.TailLines = 100
 	}
-	logs, e := pointer.clientSet.CoreV1().Pods(request.NameSpace).GetLogs(request.Name, &corev1.PodLogOptions{
+	logs, e := s.clientSet.CoreV1().Pods(request.NameSpace).GetLogs(request.Name, &corev1.PodLogOptions{
 		TailLines: &request.TailLines,
 		Follow:    true,
 	}).Stream()
@@ -369,15 +369,15 @@ func (pointer *API) GetKubernetesPodLog(ctx plugins.Context, request param.GetKu
 		topic := fmt.Sprintf("%s-%s-%s", define.K8sLogTopic, request.NameSpace, request.Name)
 		scanner := bufio.NewScanner(logs)
 		for scanner.Scan() {
-			array, e := pointer.cache.GetCache().SMembers(key)
+			array, e := s.cache.GetCache().SMembers(key)
 			if e != nil || len(array) <= 0 {
 				logs.Close()
 				log.Traceln("退出日志发送", key)
 				return
 			}
 			for _, v := range array {
-				if e := pointer._PuseMsgToAdmin(v, topic, scanner.Text()); e != nil {
-					pointer.cache.GetCache().SRem(key, v)
+				if e := s._PuseMsgToAdmin(v, topic, scanner.Text()); e != nil {
+					s.cache.GetCache().SRem(key, v)
 				}
 			}
 		}

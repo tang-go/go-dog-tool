@@ -1,30 +1,14 @@
 package param
 
-//GetRoleListReq 获取角色列表请求
-type GetRoleListReq struct {
-	PageNo   int `json:"pageNo" description:"当前请求页数" type:"int"`
-	PageSize int `json:"pageSize" description:"每一页的总数" type:"int"`
+//CreateMenuReq 创建菜单请求
+type CreateMenuReq struct {
+	Describe string `json:"describe" description:"描述" type:"string"`
+	URL      string `json:"url" description:"菜单URL" type:"string"`
+	ParentID uint   `json:"parentID" description:"父菜单ID" type:"string"`
+	Sort     uint   `json:"sort" description:"排序" type:"uint"`
 }
 
-//GetRoleListRes 获取角色列表响应
-type GetRoleListRes struct {
-	Data       []RoleInfo `json:"data" description:"数据" type:"[]RoleInfo"`
-	PageSize   int        `json:"pageSize" description:"一页大小" type:"int"`
-	PageNo     int        `json:"pageNo" description:"当前所处的页数" type:"int"`
-	TotalPage  int        `json:"totalPage" description:"总页数" type:"int"`
-	TotalCount int        `json:"totalCount" description:"总数量" type:"int"`
-}
-
-//RoleInfo 角色信息
-type RoleInfo struct {
-	//角色ID
-	RoleID string `json:"roleId" description:"角色ID" type:"string"`
-	//角色名称
-	Name string `json:"name" description:"角色名称" type:"string"`
-	//角色描述
-	Description string `json:"description" description:"角色描述" type:"string"`
-	//是否为超级管理员
-	IsAdmin bool `json:"isAdmin" description:"是否为超级管理员" type:"bool"`
-	//角色创建时间
-	Time string `json:"time" description:"创建时间" type:"string"`
+//CreateMenuRes 创建菜单响应
+type CreateMenuRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
 }

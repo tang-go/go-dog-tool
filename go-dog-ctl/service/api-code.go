@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"github.com/mojocn/base64Captcha"
@@ -11,11 +11,11 @@ import (
 )
 
 //GetCode 验证图片验证码
-func (pointer *API) GetCode(ctx plugins.Context, request param.GetCodeReq) (response param.GetCodeRes, err error) {
+func (s *Service) GetCode(ctx plugins.Context, request param.GetCodeReq) (response param.GetCodeRes, err error) {
 	number := rand.StringRand(6)
 	d := base64Captcha.NewDriverString(80, 240, 80, base64Captcha.OptionShowHollowLine, 6, number, nil, []string{})
 	driver := d.ConvertFonts()
-	code := base64Captcha.NewCaptcha(driver, pointer)
+	code := base64Captcha.NewCaptcha(driver, s)
 	id, b64s, err := code.Generate()
 	if err != nil {
 		log.Errorln(err.Error())

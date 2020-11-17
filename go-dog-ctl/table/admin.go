@@ -30,7 +30,7 @@ type Admin struct {
 	//在线网关地址
 	GateAddress string
 	//角色
-	RoleID int64
+	RoleID uint
 	//注册事件
 	Time int64
 }

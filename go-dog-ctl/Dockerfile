@@ -2,8 +2,8 @@ FROM busybox:latest
 RUN mkdir /app
 ADD Shanghai /etc/localtime
 RUN echo 'Asia/Shanghai' >/etc/timezone
-ADD go-dog-find /app/go-dog-find
+ADD go-dog-ctl /app/go-dog-ctl
 ADD config /app/config
-RUN chmod -R 777 /app/go-dog-find
+RUN chmod -R 777 /app/go-dog-ctl
 WORKDIR /app
-CMD ["/app/go-dog-find"]
+CMD ["/app/go-dog-ctl"]

@@ -13,43 +13,59 @@ import (
 //GetRoleMenu 获取角色菜单
 func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq) (response param.GetRoleMenuRes, err error) {
 	role := new(table.SysRole)
-	err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(role).Error
+	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.RoleID, request.Organize).First(role).Error
 	if err != nil {
 		log.Errorln(err.Error())
 		return
 	}
-	var roleMenus []table.SysRoleMenu
+
 	if role.IsSuper {
 		//超级管理员角色直接获取所有的
-		err = s.mysql.GetReadEngine().Find(&roleMenus).Error
+		var menus []table.SysMenu
+		err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&menus).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
+		for _, menu := range menus {
+			response.SysMenu = append(response.SysMenu, param.SysMenu{
+				ID:       menu.ID,
+				ParentID: menu.ParentID,
+				Describe: menu.Describe,
+				URL:      menu.URL,
+				Sort:     menu.Sort,
+				Add:      true,
+				Del:      true,
+				Update:   true,
+				Select:   true,
+				Time:     menu.Time,
+			})
+		}
 	} else {
+		var roleMenus []table.SysRoleMenu
 		err = s.mysql.GetReadEngine().Where("role_id = ?", request.RoleID).Find(&roleMenus).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
-	}
-	for _, menu := range roleMenus {
-		sysMenu := new(table.SysMenu)
-		if s.mysql.GetReadEngine().Where("id = ?", menu.MenuID).First(sysMenu).Error != nil {
-			continue
+		for _, menu := range roleMenus {
+			sysMenu := new(table.SysMenu)
+			if s.mysql.GetReadEngine().Where("id = ?", menu.MenuID).First(sysMenu).Error != nil {
+				continue
+			}
+			response.SysMenu = append(response.SysMenu, param.SysMenu{
+				ID:       sysMenu.ID,
+				ParentID: sysMenu.ParentID,
+				Describe: sysMenu.Describe,
+				URL:      sysMenu.URL,
+				Sort:     sysMenu.Sort,
+				Add:      menu.Add,
+				Del:      menu.Del,
+				Update:   menu.Update,
+				Select:   menu.Select,
+				Time:     sysMenu.Time,
+			})
 		}
-		response.SysMenu = append(response.SysMenu, param.SysMenu{
-			ID:       sysMenu.ID,
-			ParentID: sysMenu.ParentID,
-			Describe: sysMenu.Describe,
-			URL:      sysMenu.Describe,
-			Sort:     sysMenu.Sort,
-			Add:      menu.Add,
-			Del:      menu.Del,
-			Update:   menu.Update,
-			Select:   menu.Select,
-			Time:     sysMenu.Time,
-		})
 	}
 	return
 }
@@ -57,34 +73,35 @@ func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq)
 //GetRoleApi 获取角色Api
 func (s *Service) GetRoleApi(ctx plugins.Context, request param.GetRoleApiReq) (response param.GetRoleApiRes, err error) {
 	role := new(table.SysRole)
-	err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(role).Error
+	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.RoleID, request.Organize).First(role).Error
 	if err != nil {
 		log.Errorln(err.Error())
 		return
 	}
-	var roleApis []table.SysRoleApi
+
 	if role.IsSuper {
 		//超级管理员角色直接获取所有的
-		err = s.mysql.GetReadEngine().Find(&roleApis).Error
+		err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&response.SysApi).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
 	} else {
+		var roleApis []table.SysRoleApi
 		err = s.mysql.GetReadEngine().Where("role_id = ?", request.RoleID).Find(&roleApis).Error
 		if err != nil {
 			log.Errorln(err.Error())
 			return
 		}
-	}
-	var apis []uint
-	for _, api := range roleApis {
-		apis = append(apis, api.ApiID)
-	}
-	err = s.mysql.GetReadEngine().Where("id IN (?)", apis).Find(&response.SysApi).Error
-	if err != nil {
-		log.Errorln(err.Error())
-		return
+		var apis []uint
+		for _, api := range roleApis {
+			apis = append(apis, api.ApiID)
+		}
+		err = s.mysql.GetReadEngine().Where("id IN (?)", apis).Find(&response.SysApi).Error
+		if err != nil {
+			log.Errorln(err.Error())
+			return
+		}
 	}
 	return
 }
@@ -111,8 +128,17 @@ func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (
 }
 
 //SelectRole 查询角色
-func (s *Service) SelectRole(ctx plugins.Context, request param.SelectRoleReq) (response param.SelectRoleRes, err error) {
+func (s *Service) SelectRoleByOrganize(ctx plugins.Context, request param.SelectRoleByOrganizeReq) (response param.SelectRoleByOrganizeRes, err error) {
 	err = s.mysql.GetReadEngine().Where("organize = ?", request.Organize).Find(&response.SysRoles).Error
+	if err != nil {
+		log.Errorln(err.Error())
+	}
+	return
+}
+
+//SelectRoleByID 查询角色
+func (s *Service) SelectRoleByID(ctx plugins.Context, request param.SelectRoleByIDReq) (response param.SelectRoleByIDRes, err error) {
+	err = s.mysql.GetReadEngine().Where("organize = ? AND id = ?", request.Organize, request.RoleID).Find(&response.SysRole).Error
 	if err != nil {
 		log.Errorln(err.Error())
 	}
@@ -121,8 +147,10 @@ func (s *Service) SelectRole(ctx plugins.Context, request param.SelectRoleReq) (
 
 //CreateMenu 创建菜单
 func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (response param.CreateMenuRes, err error) {
-	if s.mysql.GetReadEngine().Where("url = ?", request.URL).First(&table.SysMenu{}).RecordNotFound() == true {
+	sysMenu := new(table.SysMenu)
+	if s.mysql.GetReadEngine().Where("organize = ? AND url = ?", request.Organize, request.URL).First(sysMenu).RecordNotFound() == true {
 		menu := table.SysMenu{
+			Organize: request.Organize,
 			URL:      request.URL,
 			Describe: request.Describe,
 			ParentID: request.ParentID,
@@ -136,14 +164,16 @@ func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (
 		response.ID = menu.ID
 		return
 	}
-	err = errors.New("菜单已经存在")
+	response.ID = sysMenu.ID
 	return
 }
 
 //CreateApi 创建api
 func (s *Service) CreateApi(ctx plugins.Context, request param.CreateApiReq) (response param.CreateApiRes, err error) {
-	if s.mysql.GetReadEngine().Where("api = ?", request.API).First(&table.SysApi{}).RecordNotFound() == true {
+	sysApi := new(table.SysApi)
+	if s.mysql.GetReadEngine().Where("organize = ? AND api = ?", request.Organize, request.API).First(&sysApi).RecordNotFound() == true {
 		api := table.SysApi{
+			Organize: request.Organize,
 			API:      request.API,
 			Describe: request.Describe,
 			Time:     time.Now().Unix(),
@@ -155,7 +185,7 @@ func (s *Service) CreateApi(ctx plugins.Context, request param.CreateApiReq) (re
 		response.ID = api.ID
 		return
 	}
-	err = errors.New("api已经存在")
+	response.ID = sysApi.ID
 	return
 }
 

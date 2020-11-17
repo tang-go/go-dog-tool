@@ -1,4 +1,4 @@
-package api
+package service
 
 import (
 	"github.com/tang-go/go-dog-tool/define"
@@ -8,9 +8,9 @@ import (
 )
 
 //Auth 插件
-func (pointer *API) Auth(ctx plugins.Context, method, token string) error {
+func (s *Service) Auth(ctx plugins.Context, method, token string) error {
 	admin := new(table.Admin)
-	if e := pointer.cache.GetCache().Get(token, admin); e != nil {
+	if e := s.cache.GetCache().Get(token, admin); e != nil {
 		return customerror.EnCodeError(define.AdminTokenErr, "token失效或者不正确")
 	}
 	ctx.SetShare("Admin", admin)
