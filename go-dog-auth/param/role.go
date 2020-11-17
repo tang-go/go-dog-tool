@@ -2,6 +2,31 @@ package param
 
 import "github.com/tang-go/go-dog-tool/go-dog-auth/table"
 
+//CreateTokenReq 创建token
+type CreateTokenReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+	Key      string `json:"key" description:"关键值" type:"string"`
+	Value    string `json:"value" description:"值" type:"string"`
+}
+
+//CreateTokenRes 创建token
+type CreateTokenRes struct {
+	Token string `json:"token" description:"token" type:"string"`
+}
+
+//VerifyTokenReq 验证token
+type VerifyTokenReq struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+	Token    string `json:"token" description:"token" type:"string"`
+}
+
+//CreateTokenReq 创建token
+type VerifyTokenRes struct {
+	Organize string `json:"organize" description:"组织" type:"string"`
+	Key      string `json:"key" description:"关键值" type:"string"`
+	Value    string `json:"value" description:"值" type:"string"`
+}
+
 //GetRoleMenuReq 获取角色菜单请求
 type GetRoleMenuReq struct {
 	Organize string `json:"organize" description:"组织" type:"string"`
