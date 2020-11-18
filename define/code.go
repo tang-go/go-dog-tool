@@ -14,8 +14,8 @@ const (
 	AdminTokenErr = 10004
 	//GetAdminInfoErr 获取管理员信息失败
 	GetAdminInfoErr = 10005
-	//GetRoleListErr 获取角色列表失败
-	GetRoleListErr = 10006
+	//APIPowerErr API权限不够
+	APIPowerErr = 10006
 	//BuildServiceErr 编译发布服务失败
 	BuildServiceErr = 10007
 	//GetBuildServiceListErr 获取编译发布服务失败
@@ -46,4 +46,30 @@ const (
 	GetKubernetesPodLogErr = 10020
 	//CreateMenuErr 创建菜单
 	CreateMenuErr = 10021
+	//DelMenuErr 删除菜单
+	DelMenuErr = 10022
+	//GetRoleListErr 获取角色列表失败
+	GetRoleListErr = 10023
+	//CreateRoleErr 创建角色失败
+	CreateRoleErr = 10024
+	//DelRoleErr 删除角色失败
+	DelRoleErr = 10025
+	//GetRoleMenuErr 获取角色菜单失败
+	GetRoleMenuErr = 10026
+	//BindRoleMenuErr 绑定角色菜单失败
+	BindRoleMenuErr = 10027
+	//DelRoleMenuErr 删除角色菜单失败
+	DelRoleMenuErr = 10028
+	//GetAPIListErr 获取API列表
+	GetAPIListErr = 10029
+	//GetMenuErr 获取菜单失败
+	GetMenuErr = 10030
+	//DelAPIErr 删除api
+	DelAPIErr = 10031
+	//GetRoleAPIErr 获取角色api失败
+	GetRoleAPIErr = 10032
+	//BindRoleAPIErr 绑定角色api失败
+	BindRoleAPIErr = 10033
+	//DelRoleAPIErr 删除角色api失败
+	DelRoleAPIErr = 10034
 )

@@ -18,7 +18,7 @@ require (
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
 	github.com/swaggo/gin-swagger v1.2.0
 	github.com/swaggo/swag v1.6.8
-	github.com/tang-go/go-dog v0.0.0-20201117053313-964848f8c947
+	github.com/tang-go/go-dog v0.0.0-20201118100342-0352dc21e635
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	k8s.io/api v0.17.0

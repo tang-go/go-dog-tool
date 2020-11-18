@@ -5,13 +5,15 @@ import (
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	customerror "github.com/tang-go/go-dog/error"
+	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
 )
 
 //AdminOnline 管理员上线
 func (s *Service) AdminOnline(ctx plugins.Context, request param.AdminOnlineReq) (response param.AdminOnlineRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
+	admin := new(table.Admin)
+	if e := s.cache.GetCache().Get(ctx.GetToken(), admin); e != nil {
+		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}
@@ -32,8 +34,9 @@ func (s *Service) AdminOnline(ctx plugins.Context, request param.AdminOnlineReq)
 
 //AdminOffline 管理员下线
 func (s *Service) AdminOffline(ctx plugins.Context, request param.AdminOfflineReq) (response param.AdminOfflineRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
+	admin := new(table.Admin)
+	if e := s.cache.GetCache().Get(ctx.GetToken(), admin); e != nil {
+		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}

@@ -1,14 +1,12 @@
 package service
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/tang-go/go-dog-tool/define"
 	authAPI "github.com/tang-go/go-dog-tool/go-dog-auth/api"
-	authParam "github.com/tang-go/go-dog-tool/go-dog-auth/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	customerror "github.com/tang-go/go-dog/error"
@@ -16,47 +14,6 @@ import (
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
 )
-
-//RoleMenuSort 菜单排序
-type RoleMenuSort []*param.RoleMenu
-
-//Len 长度
-func (m RoleMenuSort) Len() int { return len(m) }
-
-//Swap 交换
-func (m RoleMenuSort) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
-
-//Less 比较
-func (m RoleMenuSort) Less(i, j int) bool {
-	if m[i].Sort == m[j].Sort {
-		return m[i].Time > m[j].Time
-	}
-	return m[i].Sort > m[j].Sort
-}
-
-//_AssembleMenu 组织菜单
-func (s *Service) _AssembleRoleMenu(m *param.RoleMenu, source []authParam.RoleMenu, parentID uint) {
-	for _, menu := range source {
-		if menu.ParentID == parentID {
-			nm := param.RoleMenu{
-				ID:       menu.ID,
-				ParentID: menu.ParentID,
-				URL:      menu.URL,
-				Add:      menu.Add,
-				Describe: menu.Describe,
-				Del:      menu.Del,
-				Update:   menu.Update,
-				Select:   menu.Select,
-				Sort:     menu.Sort,
-				Time:     menu.Time,
-			}
-			s._AssembleRoleMenu(&nm, source, menu.ID)
-			m.Children = append(m.Children, &nm)
-		}
-	}
-	sort.Sort(RoleMenuSort(m.Children))
-	return
-}
 
 //GetAdminInfo 获取管理员信息
 func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoReq) (response param.GetAdminInfoRes, err error) {
@@ -83,7 +40,6 @@ func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoRe
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
 		return
 	}
-	fmt.Println(menus)
 	for _, menu := range menus {
 		if menu.ParentID == 0 {
 			nm := param.RoleMenu{

@@ -49,6 +49,19 @@ func CreateRole(ctx plugins.Context, organize, name, describe string, isSuper bo
 	return info.ID, nil
 }
 
+//DelRole 删除角色
+func DelRole(ctx plugins.Context, organize string, id uint) (success bool, err error) {
+	info := param.DelRoleRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "CreateRole", param.DelRoleReq{
+		Organize: organize,
+		ID:       id,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.Success, err
+	}
+	return info.Success, nil
+}
+
 //SelectRoleByOrganize 查询角色
 func SelectRoleByOrganize(ctx plugins.Context, organize string) (sysRoles []table.SysRole, err error) {
 	info := param.SelectRoleByOrganizeRes{}
@@ -90,6 +103,19 @@ func CreateMenu(ctx plugins.Context, organize string, describe string, url strin
 	return info.ID, nil
 }
 
+//DelMenu 删除菜单
+func DelMenu(ctx plugins.Context, organize string, id uint) (success bool, err error) {
+	info := param.DelAPIRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "DelMenu", param.DelAPIReq{
+		Organize: organize,
+		ID:       id,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.Success, err
+	}
+	return info.Success, nil
+}
+
 //SelectMenu 查询菜单
 func SelectMenu(ctx plugins.Context, organize string) (sysMenu []table.SysMenu, err error) {
 	info := param.SelectMenuRes{}
@@ -116,6 +142,19 @@ func CreateAPI(ctx plugins.Context, organize string, describe string, api string
 	return info.ID, nil
 }
 
+//DelAPI 删除API
+func DelAPI(ctx plugins.Context, organize string, id uint) (success bool, err error) {
+	info := param.DelAPIRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "DelAPI", param.DelAPIReq{
+		Organize: organize,
+		ID:       id,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.Success, err
+	}
+	return info.Success, nil
+}
+
 //SelectAPI 查询API
 func SelectAPI(ctx plugins.Context, organize string) (sysAPI []table.SysAPI, err error) {
 	info := param.SelectAPIRes{}
@@ -129,11 +168,26 @@ func SelectAPI(ctx plugins.Context, organize string) (sysAPI []table.SysAPI, err
 }
 
 //BindRoleAPI 绑定角色api
-func BindRoleAPI(ctx plugins.Context, roleID uint, apiID uint) (success bool, err error) {
+func BindRoleAPI(ctx plugins.Context, organize string, roleID uint, apiID uint) (success bool, err error) {
 	info := param.BindRoleAPIRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "BindRoleAPI", param.BindRoleAPIReq{
-		RoleID: roleID,
-		APIID:  apiID,
+		Organize: organize,
+		RoleID:   roleID,
+		APIID:    apiID,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.Success, err
+	}
+	return info.Success, nil
+}
+
+//DelRoleAPI 删除角色api
+func DelRoleAPI(ctx plugins.Context, organize string, roleID uint, apiID uint) (success bool, err error) {
+	info := param.DelRoleAPIRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "DelRoleAPI", param.DelRoleAPIReq{
+		Organize: organize,
+		RoleID:   roleID,
+		APIID:    apiID,
 	}, &info); err != nil {
 		log.Errorln(err.Error())
 		return info.Success, err
@@ -142,15 +196,30 @@ func BindRoleAPI(ctx plugins.Context, roleID uint, apiID uint) (success bool, er
 }
 
 //BindRoleMenu 绑定角色菜单
-func BindRoleMenu(ctx plugins.Context, menuID uint, roleID uint, add bool, del bool, update bool, sel bool) (success bool, err error) {
+func BindRoleMenu(ctx plugins.Context, organize string, menuID uint, roleID uint, add bool, del bool, update bool, sel bool) (success bool, err error) {
 	info := param.BindRoleMenuRes{}
 	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "BindRoleMenu", param.BindRoleMenuReq{
-		MenuID: menuID,
-		RoleID: roleID,
-		Add:    add,
-		Del:    del,
-		Update: update,
-		Select: sel,
+		Organize: organize,
+		MenuID:   menuID,
+		RoleID:   roleID,
+		Add:      add,
+		Del:      del,
+		Update:   update,
+		Select:   sel,
+	}, &info); err != nil {
+		log.Errorln(err.Error())
+		return info.Success, err
+	}
+	return info.Success, nil
+}
+
+//DelRoleMenu 删除角色菜单
+func DelRoleMenu(ctx plugins.Context, organize string, roleID uint, menuID uint) (success bool, err error) {
+	info := param.DelRoleMenuRes{}
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "DelRoleMenu", param.DelRoleMenuReq{
+		Organize: organize,
+		RoleID:   roleID,
+		MenuID:   menuID,
 	}, &info); err != nil {
 		log.Errorln(err.Error())
 		return info.Success, err

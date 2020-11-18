@@ -11,6 +11,22 @@ const (
 	StartDockerType
 	//CreateMenuType 创建菜单
 	CreateMenuType
+	//DelMenuType 删除菜单
+	DelMenuType
+	//CreateRoleType 创建角色
+	CreateRoleType
+	//DelRoleType 删除角色
+	DelRoleType
+	//BindRoleMenuType 绑定角色菜单
+	BindRoleMenuType
+	//DelRoleMenuType 删除角色菜单
+	DelRoleMenuType
+	//DelAPIType 删除API
+	DelAPIType
+	//BindRoleAPIType 绑定角色api
+	BindRoleAPIType
+	//DelRoleAPIType 删除角色api
+	DelRoleAPIType
 )
 
 //Log 日志

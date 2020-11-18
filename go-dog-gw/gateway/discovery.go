@@ -51,6 +51,8 @@ func NewGoDogDiscovery(address []string) *GoDogDiscovery {
 	if err := dis._ConnectClient(); err != nil {
 		panic(err)
 	}
+	//等待一个心跳时间
+	time.Sleep(dis.ttl)
 	return dis
 }
 
@@ -149,16 +151,19 @@ func (d *GoDogDiscovery) _ConnectClient() error {
 		return err
 	}
 	d.conn = conn
+	//开启心跳
+	go d._Heart()
+	//开启监听
 	go d._Watch()
+	//默认监听rpc服务消息
+	d._WatchRPCService()
+	d._WatchAPIService()
 	log.Traceln("链接成功注册中心", address)
 	return nil
 }
 
 //_Watch 开始监听
 func (d *GoDogDiscovery) _Watch() {
-	go d._Heart()
-	d._WatchRPCService()
-	d._WatchAPIService()
 	for {
 		_, buff, err := io.Read(d.conn)
 		if err != nil {
@@ -183,14 +188,14 @@ func (d *GoDogDiscovery) _Watch() {
 						continue
 					}
 					d.rpcdata[data.Key] = info
-					log.Tracef("rpc 上线 | %s | %s ", data.Key, info.Address)
+					log.Tracef("rpc 上线 | %s | %s | %s ", info.Name, data.Key, info.Address)
 				}
 				mp[data.Key] = data.Value
 			}
 			for key, info := range d.rpcdata {
 				if _, ok := mp[key]; !ok {
 					delete(d.rpcdata, key)
-					log.Tracef("rpc 下线 | %s | %s ", key, info.Address)
+					log.Tracef("rpc 下线 | %s | %s | %s ", info.Name, key, info.Address)
 				}
 			}
 		}
@@ -213,7 +218,7 @@ func (d *GoDogDiscovery) _Watch() {
 								Name:   info.Name,
 								Count:  1,
 							}
-							log.Tracef(" 上线 | %s | %s ", data.Key, url)
+							log.Tracef(" 上线 | %s | %s | %s ", info.Name, data.Key, url)
 						}
 					}
 					d.apidata[data.Key] = info
@@ -228,7 +233,7 @@ func (d *GoDogDiscovery) _Watch() {
 							api.Count--
 							if api.Count <= 0 {
 								delete(d.apis, url)
-								log.Tracef(" 下线 | %s | %s ", data.Key, url)
+								log.Tracef(" 下线 | %s | %s | %s ", data.Name, data.Key, url)
 							}
 						}
 					}
