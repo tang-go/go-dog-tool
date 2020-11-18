@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -105,7 +106,7 @@ func (s *Service) AdminLogin(ctx plugins.Context, request param.AdminLoginReq) (
 		return
 	}
 	//生成token
-	token := md5.Md5(admin.AdminID)
+	token := md5.Md5(fmt.Sprintf("%d-%d", admin.AdminID, time.Now().Unix()))
 	//生成token缓存
 	s.cache.GetCache().SetByTime(token, admin, define.AdminTokenValidityTime)
 	//登录成功返回
