@@ -25,6 +25,6 @@ func POSTRouter(s *service.Service) {
 	s.POST("DelDocker", "v1", "del/docker", 3, true, "删除docker服务", s.DelDocker)
 	s.POST("RestartDocker", "v1", "restart/docker", 3, true, "重启docker服务", s.RestartDocker)
 	//k8s相关
-	s.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", s.CreateKubernetesDeployment)
-	s.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", s.DeleteKubernetesDeployment)
+	//s.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", s.CreateKubernetesDeployment)
+	//s.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", s.DeleteKubernetesDeployment)
 }

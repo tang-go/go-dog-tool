@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -328,7 +329,7 @@ func (s *Service) DelRole(ctx plugins.Context, request param.DelRoleReq) (respon
 //GetRoleMenu 获取角色菜单列表
 func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq) (response param.GetRoleMenuRes, err error) {
 	//获取菜单信息
-	menus, e := authAPI.GetRoleMenu(ctx, define.Organize, request.ID)
+	menus, e := authAPI.GetRoleMenu(ctx, define.Organize, request.RoleID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -470,6 +471,7 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
 		log.Errorln(e.Error())
 	}
+	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, admin.RoleID))
 	response.Success = true
 	return
 }
@@ -502,6 +504,7 @@ func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
 		log.Errorln(e.Error())
 	}
+	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, admin.RoleID))
 	response.Success = true
 	return
 }

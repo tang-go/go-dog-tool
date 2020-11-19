@@ -2,7 +2,7 @@ package param
 
 //GetRoleAPIReq 获取角色api请求
 type GetRoleAPIReq struct {
-	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
+	RoleID uint `json:"roleID" description:"角色ID" type:"uint"`
 }
 
 //GetRoleAPIRes 获取角色api响应
@@ -21,7 +21,7 @@ type GetAPIListRes struct {
 
 //API API详情
 type API struct {
-	ID       uint   `gorm:"primary_key" json:"id" description:"ID" type:"uint"`
+	ID       uint   `json:"id" description:"ID" type:"uint"`
 	Organize string `json:"organize" description:"组织" type:"string"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	API      string `json:"api" description:"api接口" type:"string"`
@@ -40,8 +40,8 @@ type DelAPIRes struct {
 
 //BindRoleAPIReq 绑定api菜单
 type BindRoleAPIReq struct {
-	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
-	APIID  uint `json:"apiID" description:"api的ID" type:"string"`
+	RoleID uint `json:"roleID" description:"角色ID" type:"uint"`
+	APIID  uint `json:"apiID" description:"api的ID" type:"uint"`
 }
 
 //BindRoleAPIRes 绑定api菜单
@@ -51,8 +51,8 @@ type BindRoleAPIRes struct {
 
 //DelRoleAPIReq 删除角色API
 type DelRoleAPIReq struct {
-	RoleID uint `json:"roleID" description:"角色ID" type:"string"`
-	APIID  uint `json:"apiID" description:"api的ID" type:"string"`
+	RoleID uint `json:"roleID" description:"角色ID" type:"uint"`
+	APIID  uint `json:"apiID" description:"api的ID" type:"uint"`
 }
 
 //DelRoleAPIRes 删除角色API
@@ -62,7 +62,7 @@ type DelRoleAPIRes struct {
 
 //GetRoleMenuReq 获取角色菜单
 type GetRoleMenuReq struct {
-	ID uint `json:"id" description:"ID" type:"uint"`
+	RoleID uint `json:"roleID" description:"角色ID" type:"uint"`
 }
 
 //GetRoleMenuRes 获取角色菜单
@@ -72,7 +72,7 @@ type GetRoleMenuRes struct {
 
 //RoleMenu 权限菜单
 type RoleMenu struct {
-	ID       uint        `json:"id" description:"ID" type:"uint"`
+	ID       uint        `json:"id" description:"菜单ID" type:"uint"`
 	ParentID uint        `json:"parentID" description:"父亲结点ID" type:"uint"`
 	URL      string      `json:"url" description:"菜单路由" type:"string"`
 	Describe string      `json:"describe" description:"菜单描述" type:"string"`
@@ -89,10 +89,10 @@ type RoleMenu struct {
 type BindRoleMenuReq struct {
 	RoleID uint `json:"roleID" description:"角色id" type:"uint"`
 	MenuID uint `json:"menuID" description:"菜单id" type:"uint"`
-	Add    bool `json:"add" description:"增加权限" type:"string"`
-	Del    bool `json:"del" description:"删除权限" type:"string"`
-	Update bool `json:"update" description:"更新权限" type:"string"`
-	Select bool `json:"select" description:"查询权限" type:"string"`
+	Add    bool `json:"add" description:"增加权限" type:"bool"`
+	Del    bool `json:"del" description:"删除权限" type:"bool"`
+	Update bool `json:"update" description:"更新权限" type:"bool"`
+	Select bool `json:"select" description:"查询权限" type:"bool"`
 }
 
 //BindRoleMenuRes 绑定角色菜单

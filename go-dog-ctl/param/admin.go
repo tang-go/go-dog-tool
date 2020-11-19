@@ -13,6 +13,7 @@ type GetAdminInfoRes struct {
 	RoleID   uint        `json:"roleId" description:"权限的ID" type:"uint"`
 	RoleName string      `json:"roleName" description:"权限名称" type:"string"`
 	Menu     []*RoleMenu `json:"menu" description:"菜单" type:"[]*RoleMenu"`
+	APIS     []API       `json:"apis" description:"API" type:"[]API"`
 }
 
 //AdminLoginReq 管理员登录

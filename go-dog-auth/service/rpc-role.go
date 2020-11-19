@@ -299,6 +299,32 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 	return
 }
 
+//DelRoleAPI 删除角色PAI
+func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (response param.DelRoleAPIRes, err error) {
+	role := new(table.SysRole)
+	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.RoleID, request.Organize).First(role).Error
+	if err != nil {
+		log.Errorln(err.Error())
+		return
+	}
+	api := new(table.SysAPI)
+	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.APIID, request.Organize).First(api).Error
+	if err != nil {
+		log.Errorln(err.Error())
+		return
+	}
+	if role.Organize != api.Organize {
+		err = errors.New("不是跨组织删除")
+		return
+	}
+	if err = s.mysql.GetWriteEngine().Where("role_id = ? AND api_id = ?", role.ID, api.ID).Delete(&table.SysRoleAPI{}).Error; err != nil {
+		log.Errorln(err.Error())
+		return
+	}
+	response.Success = true
+	return
+}
+
 //DelRoleMenu 删除角色菜单
 func (s *Service) DelRoleMenu(ctx plugins.Context, request param.DelRoleMenuReq) (response param.DelRoleMenuRes, err error) {
 	role := new(table.SysRole)
@@ -343,7 +369,7 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 		err = errors.New("不是跨组织绑定")
 		return
 	}
-	if s.mysql.GetReadEngine().Where("role_id = ? AND menu_id = ?", request.RoleID, request.MenuID).First(&table.SysRoleAPI{}).RecordNotFound() == true {
+	if s.mysql.GetReadEngine().Where("role_id = ? AND menu_id = ?", request.RoleID, request.MenuID).First(&table.SysRoleMenu{}).RecordNotFound() == true {
 		if err = s.mysql.GetReadEngine().Where("id = ?", request.RoleID).First(&table.SysRole{}).Error; err != nil {
 			log.Errorln(err.Error())
 			return
@@ -369,31 +395,5 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 		return
 	}
 	err = errors.New("请勿重复绑定")
-	return
-}
-
-//DelRoleAPI 删除角色PAI
-func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (response param.DelRoleAPIRes, err error) {
-	role := new(table.SysRole)
-	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.RoleID, request.Organize).First(role).Error
-	if err != nil {
-		log.Errorln(err.Error())
-		return
-	}
-	api := new(table.SysAPI)
-	err = s.mysql.GetReadEngine().Where("id = ? AND organize = ?", request.APIID, request.Organize).First(api).Error
-	if err != nil {
-		log.Errorln(err.Error())
-		return
-	}
-	if role.Organize != api.Organize {
-		err = errors.New("不是跨组织删除")
-		return
-	}
-	if err = s.mysql.GetWriteEngine().Where("role_id = ? AND api_id = ?", role.ID, api.ID).Delete(&table.SysRoleAPI{}).Error; err != nil {
-		log.Errorln(err.Error())
-		return
-	}
-	response.Success = true
 	return
 }

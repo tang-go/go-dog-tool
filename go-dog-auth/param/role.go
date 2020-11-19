@@ -15,7 +15,7 @@ type GetRoleMenuRes struct {
 
 //RoleMenu 权限菜单表
 type RoleMenu struct {
-	ID       uint   `gorm:"primary_key" json:"id" description:"ID" type:"uint"`
+	ID       uint   `json:"id" description:"菜单ID" type:"uint"`
 	Describe string `json:"describe" description:"描述" type:"string"`
 	URL      string `json:"url" description:"菜单URL" type:"string"`
 	ParentID uint   `json:"parentID" description:"父菜单ID" type:"string"`

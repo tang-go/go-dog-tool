@@ -52,7 +52,7 @@ func NewGoDogDiscovery(address []string) *GoDogDiscovery {
 		panic(err)
 	}
 	//等待一个心跳时间
-	time.Sleep(dis.ttl)
+	//time.Sleep(dis.ttl)
 	return dis
 }
 

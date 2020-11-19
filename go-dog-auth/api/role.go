@@ -52,7 +52,7 @@ func CreateRole(ctx plugins.Context, organize, name, describe string, isSuper bo
 //DelRole 删除角色
 func DelRole(ctx plugins.Context, organize string, id uint) (success bool, err error) {
 	info := param.DelRoleRes{}
-	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "CreateRole", param.DelRoleReq{
+	if err := ctx.GetClient().Call(ctx, plugins.RandomMode, define.SvcAuth, "DelRole", param.DelRoleReq{
 		Organize: organize,
 		ID:       id,
 	}, &info); err != nil {

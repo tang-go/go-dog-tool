@@ -131,13 +131,45 @@ func _Type(tp string) string {
 func _Transformation(tp string, value string) (interface{}, error) {
 	switch tp {
 	case "int8":
-		return strconv.ParseInt(value, 10, 8)
+		i, e := strconv.ParseInt(value, 10, 8)
+		if e != nil {
+			return nil, e
+		}
+		return int8(i), nil
 	case "int":
 		return strconv.Atoi(value)
 	case "int32":
-		return strconv.ParseInt(value, 10, 32)
+		i, e := strconv.ParseInt(value, 10, 32)
+		if e != nil {
+			return nil, e
+		}
+		return int32(i), nil
 	case "int64":
 		return strconv.ParseInt(value, 10, 64)
+	case "uint8":
+		i, e := strconv.ParseInt(value, 10, 8)
+		if e != nil {
+			return nil, e
+		}
+		return uint8(i), nil
+	case "uint":
+		i, e := strconv.Atoi(value)
+		if e != nil {
+			return nil, e
+		}
+		return uint(i), nil
+	case "uint32":
+		i, e := strconv.ParseInt(value, 10, 32)
+		if e != nil {
+			return nil, e
+		}
+		return uint32(i), nil
+	case "uint64":
+		i, e := strconv.ParseInt(value, 10, 64)
+		if e != nil {
+			return nil, e
+		}
+		return uint64(i), nil
 	case "float32":
 		return strconv.ParseFloat(value, 32)
 	case "float64":

@@ -60,6 +60,22 @@ func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoRe
 		}
 	}
 	sort.Sort(RoleMenuSort(response.Menu))
+	//获取api
+	apis, e := authAPI.GetRoleAPI(ctx, define.Organize, admin.RoleID)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
+		return
+	}
+	for _, api := range apis {
+		response.APIS = append(response.APIS, param.API{
+			ID:       api.ID,
+			Organize: api.Organize,
+			API:      api.API,
+			Describe: api.Describe,
+			Time:     time.Unix(api.Time, 0).Format("2006-01-02 15:04:05"),
+		})
+	}
 	response.RoleID = role.ID
 	response.RoleName = role.Name
 	return
