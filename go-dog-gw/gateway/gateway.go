@@ -36,7 +36,7 @@ func NewGateway() *Gateway {
 	//初始化服务发现
 	gateway.discovery = NewGoDogDiscovery(cfg.GetDiscovery())
 	//初始化rpc服务
-	gateway.service = service.CreateService(define.SvcGateWay, gateway.discovery)
+	gateway.service = service.CreateService(define.SvcGateWay, cfg, gateway.discovery)
 	//设置服务端最大访问量
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
