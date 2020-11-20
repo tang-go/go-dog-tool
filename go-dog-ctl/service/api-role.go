@@ -471,7 +471,7 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
 		log.Errorln(e.Error())
 	}
-	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, admin.RoleID))
+	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, request.RoleID))
 	response.Success = true
 	return
 }
@@ -504,7 +504,7 @@ func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
 		log.Errorln(e.Error())
 	}
-	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, admin.RoleID))
+	s.cache.GetCache().Del(fmt.Sprintf("%s-%d", define.Organize, request.RoleID))
 	response.Success = true
 	return
 }
