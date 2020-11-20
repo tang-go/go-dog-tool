@@ -27,6 +27,14 @@ const (
 	BindRoleAPIType
 	//DelRoleAPIType 删除角色api
 	DelRoleAPIType
+	//CreateAdminType 创建管理员
+	CreateAdminType
+	//DisableAdminType 禁用管理员
+	DisableAdminType
+	//OpenAdminType 开启管理员
+	OpenAdminType
+	//DelAdminType 删除管理员
+	DelAdminType
 )
 
 //Log 日志

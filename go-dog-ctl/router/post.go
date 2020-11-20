@@ -8,6 +8,10 @@ import (
 func POSTRouter(s *service.Service) {
 	//管理员相关
 	s.POST("AdminLogin", "v1", "admin/login", 3, false, "管理员登录", s.AdminLogin)
+	s.POST("CreateAdmin", "v1", "create/admin", 3, true, "创建管理员", s.CreateAdmin)
+	s.POST("DelAdmin", "v1", "del/admin", 3, true, "删除管理员", s.DelAdmin)
+	s.POST("DisableAdmin", "v1", "disable/admin", 3, true, "禁用管理员", s.DisableAdmin)
+	s.POST("OpenAdmin", "v1", "open/admin", 3, true, "开启管理员", s.OpenAdmin)
 	//角色相关
 	s.POST("CreateMenu", "v1", "create/menu", 3, true, "创建菜单", s.CreateMenu)
 	s.POST("DelMenu", "v1", "del/menu", 3, true, "删除菜单", s.DelMenu)

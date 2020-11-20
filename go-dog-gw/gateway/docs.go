@@ -204,21 +204,21 @@ func _CreatePOSTAPI(tags, summary, name string, isAuth bool, request, respone ma
 	parameters.Schema.Type = "object"
 	parameters.Schema.Ref = "#/definitions/" + requestName
 	api.Post.Parameters = []Parameters{
-		Parameters{
+		{
 			Type:        "integer",
 			Description: "请求超时时间,单位秒",
 			Name:        "TimeOut",
 			In:          "header",
 			Required:    true,
 		},
-		Parameters{
+		{
 			Type:        "string",
 			Description: "链路请求ID",
 			Name:        "TraceID",
 			In:          "header",
 			Required:    true,
 		},
-		Parameters{
+		{
 			Type:        "boolean",
 			Description: "是否是测试请求",
 			Name:        "IsTest",

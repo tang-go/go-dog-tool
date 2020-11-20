@@ -240,7 +240,7 @@ func (s *Service) _InitMysql(phone, pwd string) {
 		return
 	}
 	//调用权限服务创建一个角色
-	roleID, err := authAPI.CreateRole(ctx, define.Organize, "超级业主", "超级业主", true)
+	roleID, err := authAPI.CreateRole(ctx, define.Organize, "超级管理员", "超级管理员", true)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -263,8 +263,6 @@ func (s *Service) _InitMysql(phone, pwd string) {
 		Phone: phone,
 		//盐值 md5使用
 		Salt: rand.StringRand(6),
-		//等级
-		Level: owner.Level,
 		//所属业主
 		OwnerID: owner.OwnerID,
 		//是否被禁用

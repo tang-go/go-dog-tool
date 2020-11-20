@@ -7,8 +7,8 @@ import (
 //GETRouter get路由
 func GETRouter(s *service.Service) {
 	//管理员相关
-	s.GET("GetCode", "v1", "get/code", 3, false, "获取图片验证码", s.GetCode)
 	s.GET("GetAdminInfo", "v1", "get/admin/info", 3, true, "获取管理员信息", s.GetAdminInfo)
+	s.GET("GetAdminList", "v1", "get/admin/list", 3, true, "获取管理员列表", s.GetAdminList)
 	//角色相关
 	s.GET("GetMenu", "v1", "get/menu", 3, true, "获取菜单", s.GetMenu)
 	s.GET("GetAPIList", "v1", "get/api/list", 3, true, "获取API列表", s.GetAPIList)

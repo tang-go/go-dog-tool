@@ -19,8 +19,6 @@ type Admin struct {
 	Pwd string
 	//盐值 md5使用
 	Salt string
-	//等级
-	Level int
 	//所属业主
 	OwnerID int64
 	//是否被禁用

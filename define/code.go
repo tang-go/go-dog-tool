@@ -72,4 +72,14 @@ const (
 	BindRoleAPIErr = 10033
 	//DelRoleAPIErr 删除角色api失败
 	DelRoleAPIErr = 10034
+	//GetAdminListErr 获取管理员列表失败
+	GetAdminListErr = 10035
+	//CreateAdminErr 创建管理员失败
+	CreateAdminErr = 10036
+	//DisableAdminErr 禁用管理员失败
+	DisableAdminErr = 10037
+	//OpenAdminErr 开启管理员
+	OpenAdminErr = 10038
+	//DelAdminErr 删除管理员
+	DelAdminErr = 10039
 )
