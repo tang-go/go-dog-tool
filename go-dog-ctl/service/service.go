@@ -589,6 +589,7 @@ func (s *Service) _EventExecution() {
 							logTxt = logTxt + err.Error() + `<p/>`
 							log.Traceln(err.Error())
 						} else {
+
 							if err = w.Pull(&git.PullOptions{
 								RemoteName: "origin",
 								Progress: newWrite(func(b []byte) {
@@ -600,7 +601,7 @@ func (s *Service) _EventExecution() {
 									Username: request.GitAccount,
 									Password: request.GitPwd,
 								},
-							}); err != nil {
+							}); err != nil && err.Error() != git.NoErrAlreadyUpToDate.Error() {
 								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
 								logTxt = logTxt + err.Error() + `<p/>`
 								log.Traceln(err.Error())
