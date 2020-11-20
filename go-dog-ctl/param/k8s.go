@@ -4,7 +4,7 @@ package param
 type GetKubernetesNameSpaceReq struct {
 }
 
-//GetKubernetesNameSpaceReq 获取kubernetes的namespace请求
+//GetKubernetesNameSpaceRes 获取kubernetes的namespace请求
 type GetKubernetesNameSpaceRes struct {
 	K8sNameSpace []K8sNameSpace `json:"data" description:"kubernetes的namespace" type:"[]K8sNameSpace"`
 	PageSize     int            `json:"pageSize" description:"一页大小" type:"int"`
@@ -74,7 +74,7 @@ type CreateKubernetesDeploymentReq struct {
 	Containers    []PodContainer `json:"containers" description:"容器" type:"[]PodContainers"`
 }
 
-//CreateKubernetesDeploymentReq 创建一个部署
+//CreateKubernetesDeploymentRes 创建一个部署
 type CreateKubernetesDeploymentRes struct {
 	Success bool `json:"success" description:"成功失败" type:"bool"`
 }
@@ -165,7 +165,7 @@ type PodCondition struct {
 	Message            string `json:"message" description:"消息" type:"string"`
 }
 
-//Event  事件
+//PodEvent  事件
 type PodEvent struct {
 	Type           string `json:"type" description:"事件类型" type:"string"`
 	Source         string `json:"source" description:"来源" type:"string"`
@@ -175,7 +175,7 @@ type PodEvent struct {
 	LastTimestamp  string `json:"lastTimestamp" description:"最后一次时间" type:"string"`
 }
 
-//PodContainers Pod里面容器定义
+//PodContainer Pod里面容器定义
 type PodContainer struct {
 	Name            string          `json:"name" description:"名称" type:"string"`
 	Image           string          `json:"image" description:"镜像" type:"string"`

@@ -111,7 +111,7 @@ type DelRoleMenuRes struct {
 	Success bool `json:"success" description:"结果" type:"bool"`
 }
 
-//GetRoleReq 获取角色列表
+//GetRoleListReq 获取角色列表
 type GetRoleListReq struct {
 }
 

@@ -132,7 +132,7 @@ func NewService(routers ...func(*Service)) *Service {
 	//初始化缓存
 	ctl.cache = cache.NewCache(ctl.cfg)
 	//初始化etcd
-	ctl.etcd = etcd.NewEtcd(ctl.cfg)
+	//ctl.etcd = etcd.NewEtcd(ctl.cfg)
 	//初始化雪花算法
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(ctl.cfg.GetHost()).To4())
