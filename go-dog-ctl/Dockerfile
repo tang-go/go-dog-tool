@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang
 
 ENV GO111MODULE=on \
     CGO_ENABLED=0 \
