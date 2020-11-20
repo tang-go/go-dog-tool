@@ -599,7 +599,7 @@ func (s *Service) _EventExecution() {
 					case "darwin":
 						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 					case "linxu":
-						build = "go build -o " + request.Name
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 					default:
 						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
 					}
