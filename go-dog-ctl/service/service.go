@@ -557,6 +557,35 @@ func (s *Service) _SendEvent(id int64, ctx plugins.Context, request *param.Build
 	}
 }
 
+//_GitClone git clone
+func (s *Service) _GitClone(path, url, username, password string) (string, error) {
+	r, err := git.PlainClone(path, false, &git.CloneOptions{
+		URL: url,
+		Auth: &http.BasicAuth{
+			Username: username,
+			Password: password,
+		},
+		Progress:          os.Stdout,
+		Depth:             1,
+		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+	})
+	if err != nil {
+		log.Errorln(err.Error())
+		return "", err
+	}
+	ref, err := r.Head()
+	if err != nil {
+		log.Errorln(err.Error())
+		return "", err
+	}
+	commit, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		log.Errorln(err.Error())
+		return "", err
+	}
+	return commit.String(), nil
+}
+
 //_EventExecution 事件执行队列
 func (s *Service) _EventExecution() {
 	for {
@@ -575,218 +604,92 @@ func (s *Service) _EventExecution() {
 				s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
 				logTxt = logTxt + `路径不正确<p/>`
 			} else {
-				if false {
-					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始git pull")
-					logTxt = logTxt + "开始git pull" + `<p/>`
-					log.Traceln("开始git pull")
-					if r, err := git.PlainOpen(name); err != nil {
-						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
-						logTxt = logTxt + err.Error() + `<p/>`
-						log.Traceln(err.Error())
+				s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始git clone 可能等待时间较长")
+				logTxt = logTxt + "开始git clone 可能等待时间较长" + `<p/>`
+				log.Traceln("开始git clone 可能等待时间较长")
+				b, e := s._GitClone(name, request.Git, request.GitAccount, request.GitPwd)
+				if e != nil {
+					log.Errorln(e.Error())
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+					logTxt = logTxt + e.Error() + `<p/>`
+				} else {
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "git clone 完成")
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, b)
+					logTxt = logTxt + `git clone 完成<p/>`
+					logTxt = logTxt + b + `<p/>`
+					log.Traceln(`git clone 完成<p/>`)
+					log.Traceln(b)
+					//开始编译代码
+					system := runtime.GOOS
+					build := ""
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始 go build 系统"+system)
+					logTxt = logTxt + "开始 go build 系统" + system + `<p/>`
+					log.Traceln("开始 go build 系统" + system)
+					switch system {
+					case "darwin":
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+					case "linxu":
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+					default:
+						build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
+					}
+					//开始编译代码
+					shell := `
+					cd ` + name + `
+					go mod tidy
+					cd ` + request.Path + `
+					` + build
+					s._RunInLinux(shell, func(success string) {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
+						logTxt = logTxt + success + `<p/>`
+						log.Traceln(success)
+					}, func(err string) {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
+						logTxt = logTxt + err + `<p/>`
+						log.Traceln(err)
+					})
+					path := fmt.Sprintf("./%s/%s", name, request.Path)
+					tarName := uuid.GetToken() + ".tar"
+
+					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "打包 tar")
+					logTxt = logTxt + "打包 tar" + `<p/>`
+					log.Traceln("打包 tar")
+					if e := s._CreateTar(path, tarName, false); e != nil {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
+						logTxt = logTxt + e.Error() + `<p/>`
+						log.Traceln(e.Error())
 					} else {
-						if w, err := r.Worktree(); err != nil {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译镜像")
+						logTxt = logTxt + "开始编译镜像" + `<p/>`
+						log.Traceln("开始编译镜像")
+						if err := s._BuildImage("./"+tarName, "", image, func(res string) {
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+							logTxt = logTxt + res + `<p/>`
+							log.Traceln(res)
+						}); err != nil {
 							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
 							logTxt = logTxt + err.Error() + `<p/>`
 							log.Traceln(err.Error())
-						} else {
-							if err = w.Pull(&git.PullOptions{
-								Progress: newWrite(func(b []byte) {
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
-									logTxt = logTxt + string(b) + `<p/>`
-									log.Traceln(string(b))
-								}),
-								Auth: &http.BasicAuth{
-									Username: request.GitAccount,
-									Password: request.GitPwd,
-								},
-							}); err != nil && err.Error() != git.NoErrAlreadyUpToDate.Error() {
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
-								logTxt = logTxt + err.Error() + `<p/>`
-								log.Traceln(err.Error())
-							} else {
-								// Print the latest commit that was just pulled
-								ref, err := r.Head()
-								if err != nil {
-									log.Errorln(err.Error())
-								}
-								commit, err := r.CommitObject(ref.Hash())
-								if err != nil {
-									log.Errorln(err.Error())
-								}
-								log.Traceln("pull commit %v", commit)
-								system := runtime.GOOS
-								build := ""
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始 go build 系统"+system)
-								logTxt = logTxt + "开始 go build 系统" + system + `<p/>`
-								log.Traceln("开始 go build 系统" + system)
-								switch system {
-								case "darwin":
-									build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-								case "linxu":
-									build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-								default:
-									build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-								}
-								//开始编译代码
-								shell := `
-								cd ` + name + `
-								go mod tidy
-								cd ` + request.Path + `
-								` + build
-								s._RunInLinux(shell, func(success string) {
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
-									logTxt = logTxt + success + `<p/>`
-									log.Traceln(success)
-								}, func(err string) {
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
-									logTxt = logTxt + err + `<p/>`
-									log.Traceln(err)
-								})
-								path := fmt.Sprintf("./%s/%s", name, request.Path)
-								tarName := uuid.GetToken() + ".tar"
-
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "打包 tar")
-								logTxt = logTxt + "打包 tar" + `<p/>`
-								log.Traceln("打包 tar")
-								if e := s._CreateTar(path, tarName, false); e != nil {
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
-									logTxt = logTxt + e.Error() + `<p/>`
-									log.Traceln(e.Error())
-								} else {
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译镜像")
-									logTxt = logTxt + "开始编译镜像" + `<p/>`
-									log.Traceln("开始编译镜像")
-									if err := s._BuildImage("./"+tarName, "", image, func(res string) {
-										s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-										logTxt = logTxt + res + `<p/>`
-										log.Traceln(res)
-									}); err != nil {
-										s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
-										logTxt = logTxt + err.Error() + `<p/>`
-										log.Traceln(err.Error())
-									}
-									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始推送镜像")
-									logTxt = logTxt + "开始推送镜像" + `<p/>`
-									log.Traceln("开始推送镜像")
-									if e := s._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
-										s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-										logTxt = logTxt + res + `<p/>`
-										log.Traceln(res)
-									}); e != nil {
-										s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
-										logTxt = logTxt + e.Error() + `<p/>`
-										log.Traceln(e.Error())
-									}
-								}
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "删除执行文件夹")
-								logTxt = logTxt + "删除执行文件夹" + `<p/>`
-								log.Traceln("删除执行文件夹")
-								os.RemoveAll(fmt.Sprintf("%s/%s/%s", name, request.Path, request.Name))
-								os.RemoveAll(tarName)
-							}
 						}
-					}
-				} else {
-					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始git clone")
-					logTxt = logTxt + "开始git clone" + `<p/>`
-					log.Traceln("开始git clone")
-					if r, e := git.PlainClone(name, false, &git.CloneOptions{
-						URL: request.Git,
-						Progress: newWrite(func(b []byte) {
-							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
-							logTxt = logTxt + string(b) + `<p/>`
-							log.Traceln(string(b))
-						}),
-						RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-						Depth:             1,
-						Auth: &http.BasicAuth{
-							Username: request.GitAccount,
-							Password: request.GitPwd,
-						},
-					}); e == nil {
-						ref, err := r.Head()
-						if err != nil {
-							log.Errorln(err.Error())
-						}
-						commit, err := r.CommitObject(ref.Hash())
-						if err != nil {
-							log.Errorln(err.Error())
-						}
-						log.Traceln("commit %v", commit)
-						system := runtime.GOOS
-						build := ""
-						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始 go build 系统"+system)
-						logTxt = logTxt + "开始 go build 系统" + system + `<p/>`
-						log.Traceln("开始 go build 系统" + system)
-						switch system {
-						case "darwin":
-							build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-						case "linxu":
-							build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-						default:
-							build = "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o " + request.Name
-						}
-						//开始编译代码
-						shell := `
-						cd ` + name + `
-						go mod tidy
-						cd ` + request.Path + `
-						` + build
-						s._RunInLinux(shell, func(success string) {
-							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, success)
-							logTxt = logTxt + success + `<p/>`
-							log.Traceln(success)
-						}, func(err string) {
-							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err)
-							logTxt = logTxt + err + `<p/>`
-							log.Traceln(err)
-						})
-						path := fmt.Sprintf("./%s/%s", name, request.Path)
-						tarName := uuid.GetToken() + ".tar"
-
-						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "打包 tar")
-						logTxt = logTxt + "打包 tar" + `<p/>`
-						log.Traceln("打包 tar")
-						if e := s._CreateTar(path, tarName, false); e != nil {
+						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始推送镜像")
+						logTxt = logTxt + "开始推送镜像" + `<p/>`
+						log.Traceln("开始推送镜像")
+						if e := s._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
+							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
+							logTxt = logTxt + res + `<p/>`
+							log.Traceln(res)
+						}); e != nil {
 							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
 							logTxt = logTxt + e.Error() + `<p/>`
 							log.Traceln(e.Error())
-						} else {
-							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始编译镜像")
-							logTxt = logTxt + "开始编译镜像" + `<p/>`
-							log.Traceln("开始编译镜像")
-							if err := s._BuildImage("./"+tarName, "", image, func(res string) {
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-								logTxt = logTxt + res + `<p/>`
-								log.Traceln(res)
-							}); err != nil {
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, err.Error())
-								logTxt = logTxt + err.Error() + `<p/>`
-								log.Traceln(err.Error())
-							}
-							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始推送镜像")
-							logTxt = logTxt + "开始推送镜像" + `<p/>`
-							log.Traceln("开始推送镜像")
-							if e := s._PushImage(request.Accouunt, request.Pwd, image, func(res string) {
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, res)
-								logTxt = logTxt + res + `<p/>`
-								log.Traceln(res)
-							}); e != nil {
-								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
-								logTxt = logTxt + e.Error() + `<p/>`
-								log.Traceln(e.Error())
-							}
 						}
+
 						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "删除执行文件夹")
 						logTxt = logTxt + "删除执行文件夹" + `<p/>`
 						log.Traceln("删除执行文件夹")
 						os.RemoveAll(fmt.Sprintf("%s/%s/%s", name, request.Path, request.Name))
 						os.RemoveAll(tarName)
 						os.RemoveAll(name)
-					} else {
-						log.Errorln(e.Error())
-						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
-						logTxt = logTxt + e.Error() + `<p/>`
 					}
 				}
 			}
