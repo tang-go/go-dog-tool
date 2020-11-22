@@ -575,7 +575,7 @@ func (s *Service) _EventExecution() {
 				s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "编译路径不正确")
 				logTxt = logTxt + `路径不正确<p/>`
 			} else {
-				if s._PathExists(name) {
+				if false {
 					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始git pull")
 					logTxt = logTxt + "开始git pull" + `<p/>`
 					log.Traceln("开始git pull")
