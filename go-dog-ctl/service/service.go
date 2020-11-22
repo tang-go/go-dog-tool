@@ -782,6 +782,7 @@ func (s *Service) _EventExecution() {
 						log.Traceln("删除执行文件夹")
 						os.RemoveAll(fmt.Sprintf("%s/%s/%s", name, request.Path, request.Name))
 						os.RemoveAll(tarName)
+						os.RemoveAll(name)
 					} else {
 						log.Errorln(e.Error())
 						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, e.Error())
