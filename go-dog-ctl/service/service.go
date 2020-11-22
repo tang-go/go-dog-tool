@@ -590,9 +590,6 @@ func (s *Service) _EventExecution() {
 							log.Traceln(err.Error())
 						} else {
 							if err = w.Pull(&git.PullOptions{
-								RemoteName:        "main",
-								RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-								Depth:             1,
 								Progress: newWrite(func(b []byte) {
 									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
 									logTxt = logTxt + string(b) + `<p/>`
