@@ -589,9 +589,9 @@ func (s *Service) _EventExecution() {
 							logTxt = logTxt + err.Error() + `<p/>`
 							log.Traceln(err.Error())
 						} else {
-
 							if err = w.Pull(&git.PullOptions{
 								//RemoteName: "master",
+								Depth: 1,
 								Progress: newWrite(func(b []byte) {
 									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
 									logTxt = logTxt + string(b) + `<p/>`
@@ -606,6 +606,16 @@ func (s *Service) _EventExecution() {
 								logTxt = logTxt + err.Error() + `<p/>`
 								log.Traceln(err.Error())
 							} else {
+								// Print the latest commit that was just pulled
+								ref, err := r.Head()
+								if err != nil {
+									log.Errorln(err.Error())
+								}
+								commit, err := r.CommitObject(ref.Hash())
+								if err != nil {
+									log.Errorln(err.Error())
+								}
+								log.Traceln("pull commit %v", commit)
 								system := runtime.GOOS
 								build := ""
 								s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始 go build 系统"+system)
@@ -682,19 +692,29 @@ func (s *Service) _EventExecution() {
 					s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始git clone")
 					logTxt = logTxt + "开始git clone" + `<p/>`
 					log.Traceln("开始git clone")
-					if _, e := git.PlainClone(name, false, &git.CloneOptions{
+					if r, e := git.PlainClone(name, false, &git.CloneOptions{
 						URL: request.Git,
 						Progress: newWrite(func(b []byte) {
 							s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
 							logTxt = logTxt + string(b) + `<p/>`
 							log.Traceln(string(b))
 						}),
-						Depth: 1,
+						RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+						Depth:             1,
 						Auth: &http.BasicAuth{
 							Username: request.GitAccount,
 							Password: request.GitPwd,
 						},
 					}); e == nil {
+						ref, err := r.Head()
+						if err != nil {
+							log.Errorln(err.Error())
+						}
+						commit, err := r.CommitObject(ref.Hash())
+						if err != nil {
+							log.Errorln(err.Error())
+						}
+						log.Traceln("commit %v", commit)
 						system := runtime.GOOS
 						build := ""
 						s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, "开始 go build 系统"+system)
