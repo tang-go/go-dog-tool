@@ -590,8 +590,6 @@ func (s *Service) _EventExecution() {
 							log.Traceln(err.Error())
 						} else {
 							if err = w.Pull(&git.PullOptions{
-								RemoteName:    "origin",
-								ReferenceName: "refs/heads/main",
 								Progress: newWrite(func(b []byte) {
 									s._PuseMsgToAdmin(ctx.GetToken(), define.BuildServiceTopic, string(b))
 									logTxt = logTxt + string(b) + `<p/>`
