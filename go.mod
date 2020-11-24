@@ -18,8 +18,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
 	github.com/swaggo/gin-swagger v1.2.0
-	github.com/swaggo/swag v1.6.8
-	github.com/tang-go/go-dog v0.0.0-20201120090958-d062feca4d84
+	github.com/swaggo/swag v1.6.8 // indirect
+	github.com/tang-go/go-dog v0.0.0-20201124093102-de19e1ef6436
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	k8s.io/api v0.17.0

@@ -211,7 +211,7 @@ func (s *Service) GET(methodname, version, path string, level int8, isAuth bool,
 //Run 启动
 func (s *Service) Run() error {
 	err := s.service.Run()
-	s.etcd.Close()
+	//s.etcd.Close()
 	s.wait.Wait()
 	s.closeEvent <- true
 	return err

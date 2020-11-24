@@ -10,10 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
-	"github.com/swaggo/swag"
 	"github.com/tang-go/go-dog-tool/define"
+	ctlParam "github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-gw/ws"
 	customerror "github.com/tang-go/go-dog/error"
+	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/pkg/config"
 	"github.com/tang-go/go-dog/pkg/context"
@@ -46,7 +47,6 @@ func NewGateway() *Gateway {
 	//推送消息
 	gateway.service.RPC("Push", 3, false, "推送消息", gateway.ws.Push)
 	//初始化文档
-	swag.Register(swag.Name, gateway)
 	return gateway
 }
 
@@ -57,14 +57,12 @@ func (g *Gateway) Run() {
 		router := gin.New()
 		router.Use(g.cors())
 		router.Use(g.logger())
-		//静态文件夹
-		//router.StaticFS("/", http.Dir("./static"))
 		//websocket路由
 		router.GET("/ws", func(c *gin.Context) {
 			g.ws.Connect(c.Writer, c.Request, c)
 		})
 		//swagger 文档
-		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		router.GET("/swagger/*any", g.getSwagger)
 		//添加路由
 		router.POST("/api/*router", g.routerPostResolution)
 		//GET请求
@@ -79,6 +77,45 @@ func (g *Gateway) Run() {
 	if err != nil {
 		log.Warnln(err.Error())
 	}
+}
+
+//getSwagger 获取swagger
+func (g *Gateway) getSwagger(c *gin.Context) {
+	token := c.Query("token")
+	if c.Param("any") == "/swagger.json" {
+		if token == "" {
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
+			return
+		}
+		if err := g.auth(token); err != nil {
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
+			return
+
+		}
+		c.String(200, g.ReadDoc())
+		log.Traceln("获取swagger", token)
+		return
+	}
+	ginSwagger.WrapHandler(swaggerFiles.Handler, func(c *ginSwagger.Config) {
+		c.URL = "swagger.json?token=" + token
+	})(c)
+}
+
+//auth 验证token
+func (s *Gateway) auth(token string) error {
+	ctx := context.Background()
+	ctx.SetIsTest(false)
+	ctx.SetTraceID(uuid.GetToken())
+	ctx.SetToken(token)
+	return s.service.GetClient().Call(
+		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
+		plugins.RandomMode,
+		define.SvcController,
+		"AuthAdmin",
+		&ctlParam.AuthAdminReq{
+			Token: token,
+		}, &ctlParam.AuthAdminRes{},
+	)
 }
 
 //routerGetResolution get路由解析
@@ -148,7 +185,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "参数不正确"))
 			return
 		}
-		v, err := _Transformation(tp, data)
+		v, err := transformation(tp, data)
 		if err != nil {
 			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
 			return

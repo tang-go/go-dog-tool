@@ -50,3 +50,15 @@ func (s *Service) AdminOffline(ctx plugins.Context, request param.AdminOfflineRe
 	response.Success = true
 	return
 }
+
+//AuthAdmin 验证管理员
+func (s *Service) AuthAdmin(ctx plugins.Context, request param.AuthAdminReq) (response param.AuthAdminRes, err error) {
+	admin := new(table.Admin)
+	if e := s.cache.GetCache().Get(request.Token, admin); e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.AdminTokenErr, "token失效或者不正确")
+		return
+	}
+	response.Success = true
+	return
+}

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/tang-go/go-dog-tool/define"
+	"github.com/tang-go/go-dog/log"
 )
 
 //Docs 文档内容
@@ -95,8 +96,8 @@ type Parameters struct {
 	} `json:"schema"`
 }
 
-//Type type解析
-func _Type(tp string) string {
+//t type解析
+func t(tp string) string {
 	switch tp {
 	case "int8":
 		return "integer"
@@ -129,8 +130,8 @@ func _Type(tp string) string {
 	}
 }
 
-//_Transformation 转换
-func _Transformation(tp string, value string) (interface{}, error) {
+//transformation 转换
+func transformation(tp string, value string) (interface{}, error) {
 	switch tp {
 	case "int8":
 		i, e := strconv.ParseInt(value, 10, 8)
@@ -185,8 +186,8 @@ func _Transformation(tp string, value string) (interface{}, error) {
 	}
 }
 
-//CreatePOSTAPI 创建一个POSTAPI
-func _CreatePOSTAPI(tags, summary, name string, isAuth bool, request, respone map[string]interface{}) (a POSTAPI, definitions []Definitions) {
+//createPOSTAPI 创建一个POSTAPI
+func createPOSTAPI(tags, summary, name string, isAuth bool, request, respone map[string]interface{}) (a POSTAPI, definitions []Definitions) {
 	api := POSTAPI{Post: Body{
 		Consumes: []string{"application/json"},
 		Produces: []string{"application/json"},
@@ -200,7 +201,7 @@ func _CreatePOSTAPI(tags, summary, name string, isAuth bool, request, respone ma
 		Required:    true,
 	}
 	requestName := strings.Replace(tags+"."+name+"Request", "/", ".", -1)
-	requestProperties := _CreateDefinitions(requestName, request)
+	requestProperties := createDefinitions(requestName, request)
 	definitions = append(definitions, requestProperties...)
 
 	parameters.Schema.Type = "object"
@@ -240,7 +241,7 @@ func _CreatePOSTAPI(tags, summary, name string, isAuth bool, request, respone ma
 	api.Post.Parameters = append(api.Post.Parameters, parameters)
 
 	responeName := strings.Replace(tags+"."+name+"Respone", "/", ".", -1)
-	responeProperties := _CreateDefinitions(responeName, respone)
+	responeProperties := createDefinitions(responeName, respone)
 	definitions = append(definitions, responeProperties...)
 
 	api.Post.Responses.Code200.Description = "请求成功返回参数"
@@ -250,8 +251,8 @@ func _CreatePOSTAPI(tags, summary, name string, isAuth bool, request, respone ma
 	return api, definitions
 }
 
-//_CreateGETAPI 创建一个GETAPI
-func _CreateGETAPI(tags, summary, name string, isAuth bool, request, respone map[string]interface{}) (a GETAPI, definitions []Definitions) {
+//createGETAPI 创建一个GETAPI
+func createGETAPI(tags, summary, name string, isAuth bool, request, respone map[string]interface{}) (a GETAPI, definitions []Definitions) {
 	api := GETAPI{Get: Body{
 		Consumes: []string{"application/json"},
 		Tags:     []string{tags},
@@ -263,7 +264,7 @@ func _CreateGETAPI(tags, summary, name string, isAuth bool, request, respone map
 			tp, ok2 := vali["type"]
 			if ok1 == true && ok2 == true {
 				api.Get.Parameters = append(api.Get.Parameters, Parameters{
-					Type:        _Type(tp.(string)),
+					Type:        t(tp.(string)),
 					Description: des.(string),
 					Name:        key,
 					In:          "query",
@@ -305,7 +306,7 @@ func _CreateGETAPI(tags, summary, name string, isAuth bool, request, respone map
 	}
 
 	responeName := strings.Replace(tags+"."+name+"Respone", "/", ".", -1)
-	responeProperties := _CreateDefinitions(responeName, respone)
+	responeProperties := createDefinitions(responeName, respone)
 	definitions = append(definitions, responeProperties...)
 
 	api.Get.Responses.Code200.Description = "请求成功返回参数"
@@ -315,8 +316,8 @@ func _CreateGETAPI(tags, summary, name string, isAuth bool, request, respone map
 	return api, definitions
 }
 
-//CreateDefinitions 生成Definitions
-func _CreateDefinitions(name string, mp map[string]interface{}) (definitions []Definitions) {
+//createDefinitions 生成Definitions
+func createDefinitions(name string, mp map[string]interface{}) (definitions []Definitions) {
 	properties := make(map[string]Description)
 	for key, value := range mp {
 		if vali, ok := value.(map[string]interface{}); ok {
@@ -331,10 +332,10 @@ func _CreateDefinitions(name string, mp map[string]interface{}) (definitions []D
 						description.Description = des.(string)
 					}
 					if ok2 {
-						description.Type = _Type(tp.(string))
+						description.Type = t(tp.(string))
 					}
 					son := name + "." + key
-					definitions = append(definitions, _CreateDefinitions(son, mp)...)
+					definitions = append(definitions, createDefinitions(son, mp)...)
 					description.Items = &Ref{
 						Ref: "#/definitions/" + son,
 					}
@@ -345,10 +346,10 @@ func _CreateDefinitions(name string, mp map[string]interface{}) (definitions []D
 						description.Description = des.(string)
 					}
 					if ok2 {
-						description.Type = _Type(tp.(string))
+						description.Type = t(tp.(string))
 					}
 					description.Items = map[string]string{
-						"type": _Type(vali["slice"].(string)),
+						"type": t(vali["slice"].(string)),
 					}
 					properties[key] = description
 				}
@@ -362,7 +363,7 @@ func _CreateDefinitions(name string, mp map[string]interface{}) (definitions []D
 					}
 					description.Type = "object"
 					son := name + "." + key
-					definitions = append(definitions, _CreateDefinitions(son, mp)...)
+					definitions = append(definitions, createDefinitions(son, mp)...)
 					description.Ref = "#/definitions/" + son
 
 					properties[key] = description
@@ -374,7 +375,7 @@ func _CreateDefinitions(name string, mp map[string]interface{}) (definitions []D
 				description.Description = des.(string)
 			}
 			if ok2 {
-				description.Type = _Type(tp.(string))
+				description.Type = t(tp.(string))
 			}
 			properties[key] = description
 		}
@@ -401,8 +402,8 @@ type swaggerInfo struct {
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = swaggerInfo{Schemes: []string{}}
 
-//_AssembleDocs 组装文档
-func (g *Gateway) _AssembleDocs() string {
+//assembleDocs 组装文档
+func (g *Gateway) assembleDocs() string {
 	info := Info{
 		Description: "",
 		Title:       "go-dog网管API文档",
@@ -419,7 +420,7 @@ func (g *Gateway) _AssembleDocs() string {
 			return
 		}
 		if api.Method.Kind == "POST" {
-			api, d := _CreatePOSTAPI(
+			api, d := createPOSTAPI(
 				api.Name,
 				api.Method.Explain,
 				api.Method.Name,
@@ -432,7 +433,7 @@ func (g *Gateway) _AssembleDocs() string {
 			}
 		}
 		if api.Method.Kind == "GET" {
-			api, d := _CreateGETAPI(
+			api, d := createGETAPI(
 				api.Name,
 				api.Method.Explain,
 				api.Method.Name,
@@ -460,7 +461,7 @@ func (g *Gateway) _AssembleDocs() string {
 
 //ReadDoc 读取文档
 func (g *Gateway) ReadDoc() string {
-	docs := g._AssembleDocs()
+	docs := g.assembleDocs()
 	t, err := template.New("swagger_info").Funcs(template.FuncMap{
 		"marshal": func(v interface{}) string {
 			a, _ := json.Marshal(v)
@@ -468,10 +469,12 @@ func (g *Gateway) ReadDoc() string {
 		},
 	}).Parse(docs)
 	if err != nil {
+		log.Errorln(err.Error())
 		return docs
 	}
 	var tpl bytes.Buffer
 	if err := t.Execute(&tpl, SwaggerInfo); err != nil {
+		log.Errorln(err.Error())
 		return docs
 	}
 	return tpl.String()

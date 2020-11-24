@@ -2,6 +2,7 @@ package service
 
 import (
 	"net"
+	"sync"
 	"time"
 
 	"github.com/tang-go/go-dog-tool/go-dog-find/param"
@@ -13,28 +14,40 @@ import (
 type Register struct {
 	conn        net.Conn
 	offlinefunc func()
-	datas       []*param.Data
+	datas       sync.Map
 	service     *Service
 }
 
 //NewRegister 新建一个服务注册
-func NewRegister(service *Service, conn net.Conn, offlinefunc func()) *Register {
+func NewRegister(service *Service, conn net.Conn) *Register {
 	return &Register{
-		conn:        conn,
-		offlinefunc: offlinefunc,
-		service:     service,
+		conn:    conn,
+		service: service,
 	}
 }
 
 //Run 启动
 func (r *Register) Run() {
-	defer r.offlinefunc()
 	for {
 		_, buff, err := io.ReadByTime(r.conn, time.Now().Add(time.Second*5))
 		if err != nil {
-			for _, data := range r.datas {
-				r.service.Del(data)
-			}
+			r.datas.Range(func(key, value interface{}) bool {
+				label, ok := key.(param.Label)
+				if !ok {
+					return true
+				}
+				data, ok := value.(*param.Data)
+				if !ok {
+					return true
+				}
+				if label == param.RPCLabel {
+					r.service.redis.DelRPC(data.Key, data.Value)
+				}
+				if label == param.APILabel {
+					r.service.redis.DelAPI(data.Key, data.Value)
+				}
+				return true
+			})
 			r.conn.Close()
 			log.Errorln(err.Error())
 			return
@@ -44,14 +57,31 @@ func (r *Register) Run() {
 			log.Errorln(err.Error())
 			continue
 		}
-		if event.Cmd == param.Reg {
-			//注册事件
-			r.datas = append(r.datas, event.Data)
+		switch event.Cmd {
+		case param.Reg:
+			reg := new(param.RegReq)
+			if err := reg.DeCode(event.Data, reg); err != nil {
+				log.Errorln(err.Error())
+			} else {
+				r.datas.Store(reg.Label, &reg.Data)
+			}
 		}
-		for _, data := range r.datas {
-			//上线服务
-			data.Time = time.Now().Unix()
-			r.service.Add(data)
-		}
+		r.datas.Range(func(key, value interface{}) bool {
+			label, ok := key.(param.Label)
+			if !ok {
+				return true
+			}
+			data, ok := value.(*param.Data)
+			if !ok {
+				return true
+			}
+			if label == param.RPCLabel {
+				r.service.redis.RegisterRPC(data.Key, data.Value)
+			}
+			if label == param.APILabel {
+				r.service.redis.RegisterAPI(data.Key, data.Value)
+			}
+			return true
+		})
 	}
 }

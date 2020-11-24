@@ -113,3 +113,11 @@ type AdminOfflineReq struct {
 type AdminOfflineRes struct {
 	Success bool `success:"address" description:"结果" type:"bool"`
 }
+
+type AuthAdminReq struct {
+	Token string `json:"token" description:"注册用户的token" type:"string"`
+}
+
+type AuthAdminRes struct {
+	Success bool `success:"address" description:"结果" type:"bool"`
+}

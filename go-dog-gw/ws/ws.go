@@ -54,7 +54,7 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 		return
 	}
 	//调用上线
-	if e := pointer._Online(token); e != nil {
+	if e := pointer.online(token); e != nil {
 		log.Errorln(e.Error())
 		return
 	}
@@ -63,7 +63,7 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 	pointer.clitens.Store(token, client)
 	client.run()
 	pointer.clitens.Delete(token)
-	if e := pointer._Offline(token); e != nil {
+	if e := pointer.offline(token); e != nil {
 		log.Errorln(e.Error())
 	}
 	log.Tracef("玩家下线 | %s |", token)
@@ -85,7 +85,7 @@ func (pointer *Ws) Push(ctx plugins.Context, request param.PushReq) (response pa
 }
 
 //_Online 上线
-func (pointer *Ws) _Online(token string) error {
+func (pointer *Ws) online(token string) error {
 	ctx := context.Background()
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
@@ -101,7 +101,7 @@ func (pointer *Ws) _Online(token string) error {
 }
 
 //_Offline 下线
-func (pointer *Ws) _Offline(token string) error {
+func (pointer *Ws) offline(token string) error {
 	ctx := context.Background()
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
@@ -142,7 +142,7 @@ func (c *client) run() {
 		}
 		if count%4 == 0 {
 			count = 0
-			if err := c.ws._Online(c.token); err != nil {
+			if err := c.ws.online(c.token); err != nil {
 				c.conn.Close()
 				log.Errorln(err.Error())
 				return
