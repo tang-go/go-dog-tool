@@ -105,12 +105,21 @@ func NewService(routers ...func(*Service)) *Service {
 	}
 	ctl.clientSet = clientSet
 	//初始化docker
-	//cli, err := client.NewClient("tcp://127.0.0.1:3375", "v1.39", nil, nil)
-	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
-	if err != nil {
-		panic(err.Error())
+	system := runtime.GOOS
+	switch system {
+	case "darwin":
+		cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
+		if err != nil {
+			panic(err.Error())
+		}
+		ctl.docker = cli
+	default:
+		cli, err := client.NewClient("tcp://127.0.0.1:2375", "v1.39", nil, nil)
+		if err != nil {
+			panic(err.Error())
+		}
+		ctl.docker = cli
 	}
-	ctl.docker = cli
 	//初始化rpc服务端
 	ctl.service = service.CreateService(define.SvcController, ctl.cfg)
 	//验证函数
