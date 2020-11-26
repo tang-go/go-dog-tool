@@ -13,6 +13,7 @@ import (
 	"github.com/tang-go/go-dog-tool/define"
 	ctlParam "github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-gw/ws"
+	"github.com/tang-go/go-dog-tool/go-dog-gw/xterm"
 	customerror "github.com/tang-go/go-dog/error"
 	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
@@ -26,6 +27,7 @@ import (
 type Gateway struct {
 	service   plugins.Service
 	ws        *ws.Ws
+	xtermWs   *xterm.Ws
 	discovery *GoDogDiscovery
 }
 
@@ -46,6 +48,10 @@ func NewGateway() *Gateway {
 	gateway.ws = ws.NewWs(gateway.service)
 	//推送消息
 	gateway.service.RPC("Push", 3, false, "推送消息", gateway.ws.Push)
+	//初始化xterm客户端
+	gateway.xtermWs = xterm.NewWs(gateway.service)
+	//推送消息
+	gateway.service.RPC("XtermPush", 3, false, "Xterm推送消息", gateway.xtermWs.XtermPush)
 	//初始化文档
 	return gateway
 }
@@ -60,6 +66,10 @@ func (g *Gateway) Run() {
 		//websocket路由
 		router.GET("/ws", func(c *gin.Context) {
 			g.ws.Connect(c.Writer, c.Request, c)
+		})
+		//xtermws路由
+		router.GET("/xtermws", func(c *gin.Context) {
+			g.xtermWs.Connect(c.Writer, c.Request, c)
 		})
 		//swagger 文档
 		router.GET("/swagger/*any", g.getSwagger)

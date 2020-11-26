@@ -82,4 +82,8 @@ const (
 	OpenAdminErr = 10038
 	//DelAdminErr 删除管理员
 	DelAdminErr = 10039
+	//StartListDockerLogErr 开始监听docker日志
+	StartListDockerLogErr = 10040
+	//EndListDockerLogErr 结束监听docker日志
+	EndListDockerLogErr = 10041
 )

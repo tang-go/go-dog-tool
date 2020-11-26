@@ -1,5 +1,27 @@
 package param
 
+//StartListDockerLogReq 开始监听docker日志
+type StartListDockerLogReq struct {
+	ID      string `json:"id" description:"镜像ID" type:"string"`
+	Uid     string `json:"uid" description:"Uid" type:"string"`
+	Address string `json:"address" description:"网关地址" type:"string"`
+}
+
+//StartListDockerLogRes 开始监听docker日志
+type StartListDockerLogRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
+//EndListDockerLogReq 结束监听docker日志
+type EndListDockerLogReq struct {
+	Uid string `json:"uid" description:"Uid" type:"string"`
+}
+
+//EndListDockerLogRes 结束监听docker日志
+type EndListDockerLogRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
 //DelDockerReq 删除镜像请求
 type DelDockerReq struct {
 	DockerID string `json:"dockerId" description:"ID" type:"string"`

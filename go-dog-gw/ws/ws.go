@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -9,8 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/tang-go/go-dog-tool/define"
-	ctlParam "github.com/tang-go/go-dog-tool/go-dog-ctl/param"
+	"github.com/tang-go/go-dog-tool/go-dog-ctl/rpc"
 	"github.com/tang-go/go-dog-tool/go-dog-gw/param"
 	"github.com/tang-go/go-dog/lib/uuid"
 	"github.com/tang-go/go-dog/log"
@@ -54,19 +54,19 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 		return
 	}
 	//调用上线
-	if e := pointer.online(token); e != nil {
+	if e := pointer.online(c.ClientIP(), token); e != nil {
 		log.Errorln(e.Error())
 		return
 	}
-	log.Tracef("玩家上线 | %s |", token)
-	client := newclient(pointer, token, conn)
+	log.Tracef("玩家上线 | %s | %s |", token, c.ClientIP())
+	client := newclient(pointer, c.ClientIP(), token, conn)
 	pointer.clitens.Store(token, client)
 	client.run()
 	pointer.clitens.Delete(token)
-	if e := pointer.offline(token); e != nil {
+	if e := pointer.offline(c.ClientIP(), token); e != nil {
 		log.Errorln(e.Error())
 	}
-	log.Tracef("玩家下线 | %s |", token)
+	log.Tracef("玩家下线 | %s | %s |", token, c.ClientIP())
 }
 
 //Push 消息推送
@@ -74,60 +74,55 @@ func (pointer *Ws) Push(ctx plugins.Context, request param.PushReq) (response pa
 	log.Tracef("推送消息 | %s | %s | %s |", request.Token, request.Topic, request.Msg)
 	value, ok := pointer.clitens.Load(request.Token)
 	if !ok {
+		err = errors.New("token 不存在")
 		return
 	}
-	if msg, err := json.Marshal(request); err == nil {
-		if cli, o := value.(*client); o {
-			cli.push(msg)
-		}
+	msg, e := json.Marshal(request)
+	if e != nil {
+		err = e
+		return
+	}
+	if cli, o := value.(*client); o {
+		cli.push(msg)
 	}
 	return
 }
 
 //_Online 上线
-func (pointer *Ws) online(token string) error {
+func (pointer *Ws) online(address, token string) error {
 	ctx := context.Background()
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
 	ctx.SetToken(token)
-	return pointer.service.GetClient().Call(
-		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
-		plugins.RandomMode,
-		define.SvcController,
-		"AdminOnline",
-		&ctlParam.AdminOnlineReq{
-			Address: fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()),
-		}, &ctlParam.AdminOnlineRes{})
+	ctx.SetAddress(address)
+	_, err := rpc.AdminOnline(pointer.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()))
+	return err
 }
 
 //_Offline 下线
-func (pointer *Ws) offline(token string) error {
+func (pointer *Ws) offline(address, token string) error {
 	ctx := context.Background()
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
 	ctx.SetToken(token)
-	//调用下线
-	return pointer.service.GetClient().Call(
-		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
-		plugins.RandomMode,
-		define.SvcController,
-		"AdminOffline",
-		&ctlParam.AdminOfflineReq{
-			Address: fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()),
-		}, &ctlParam.AdminOfflineRes{})
+	ctx.SetAddress(address)
+	_, err := rpc.AdminOffline(pointer.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), fmt.Sprintf("%s:%d", pointer.service.GetCfg().GetHost(), pointer.service.GetCfg().GetPort()))
+	return err
 }
 
 type client struct {
-	ws    *Ws
-	conn  *websocket.Conn
-	token string
+	ws      *Ws
+	conn    *websocket.Conn
+	address string
+	token   string
 }
 
-func newclient(ws *Ws, token string, conn *websocket.Conn) *client {
+func newclient(ws *Ws, address string, token string, conn *websocket.Conn) *client {
 	return &client{
-		ws:    ws,
-		conn:  conn,
-		token: token,
+		ws:      ws,
+		address: address,
+		conn:    conn,
+		token:   token,
 	}
 }
 
@@ -142,7 +137,7 @@ func (c *client) run() {
 		}
 		if count%4 == 0 {
 			count = 0
-			if err := c.ws.online(c.token); err != nil {
+			if err := c.ws.online(c.address, c.token); err != nil {
 				c.conn.Close()
 				log.Errorln(err.Error())
 				return

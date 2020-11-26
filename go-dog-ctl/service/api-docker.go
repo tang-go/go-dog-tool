@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -94,8 +93,8 @@ func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq)
 		if e := s._PullImage(request.Account, request.Pwd, request.Images, func(res string) {
 			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, res)
 		}); e != nil {
+			log.Errorln(e.Error())
 			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
-			return
 		}
 		config := &container.Config{
 			Image:      request.Images,
@@ -295,25 +294,5 @@ func (s *Service) GetDockerList(ctx plugins.Context, request param.GetDockerList
 		d.Ports = p
 		response.Data = append(response.Data, d)
 	}
-	return
-}
-
-//GetDockerLog 获取docker容器日志
-func (s *Service) GetDockerLog(ctx plugins.Context, request param.CloseDockerReq) (response param.CloseDockerRes, err error) {
-	logs, e := s.docker.ContainerLogs(ctx, request.ID, types.ContainerLogsOptions{Tail: "100"})
-	if e != nil {
-		log.Errorln(e.Error())
-		err = customerror.EnCodeError(define.CloseDockerErr, e.Error())
-		return
-	}
-	go func() {
-		scanner := bufio.NewScanner(logs)
-		for scanner.Scan() {
-			//获取到日志
-			fmt.Println(scanner.Text())
-		}
-		logs.Close()
-	}()
-	response.Success = true
 	return
 }

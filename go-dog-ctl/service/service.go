@@ -27,7 +27,7 @@ import (
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/cfg"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
-	gateParam "github.com/tang-go/go-dog-tool/go-dog-gw/param"
+	"github.com/tang-go/go-dog-tool/go-dog-gw/rpc"
 	"github.com/tang-go/go-dog/cache"
 	"github.com/tang-go/go-dog/etcd"
 	"github.com/tang-go/go-dog/lib/md5"
@@ -76,17 +76,18 @@ type buildEvent struct {
 
 //Service 控制服务
 type Service struct {
-	service    plugins.Service
-	cfg        *cfg.Config
-	docker     *client.Client
-	mysql      *mysql.Mysql
-	etcd       *etcd.Etcd
-	snowflake  *snowflake.SnowFlake
-	cache      *cache.Cache
-	clientSet  *kubernetes.Clientset
-	buildEvent chan *buildEvent
-	closeEvent chan bool
-	wait       sync.WaitGroup
+	service     plugins.Service
+	cfg         *cfg.Config
+	docker      *client.Client
+	mysql       *mysql.Mysql
+	etcd        *etcd.Etcd
+	snowflake   *snowflake.SnowFlake
+	cache       *cache.Cache
+	clientSet   *kubernetes.Clientset
+	buildEvent  chan *buildEvent
+	closeEvent  chan bool
+	dockerListn sync.Map
+	wait        sync.WaitGroup
 }
 
 //NewService 初始化服务
@@ -732,11 +733,8 @@ func (s *Service) _PuseMsgToAdmin(token, topic, msg string) error {
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
 	ctx.SetToken(token)
-	if e := s.service.GetClient().CallByAddress(context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), admin.GateAddress, define.SvcGateWay, "Push", &gateParam.PushReq{
-		Token: token,
-		Topic: topic,
-		Msg:   msg,
-	}, &gateParam.PushRes{}); e != nil {
+	ctx.SetAddress(admin.GateAddress)
+	if _, e := rpc.Push(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), admin.GateAddress, token, topic, msg); e != nil {
 		log.Warnln(e.Error())
 		return e
 	}
