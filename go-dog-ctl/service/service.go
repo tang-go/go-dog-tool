@@ -107,15 +107,16 @@ func NewService(routers ...func(*Service)) *Service {
 	ctl.clientSet = clientSet
 	//初始化docker
 	system := runtime.GOOS
+	log.Traceln("当前系统", system)
 	switch system {
-	case "darwin":
+	case "windows":
 		cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
 		if err != nil {
 			panic(err.Error())
 		}
 		ctl.docker = cli
 	default:
-		cli, err := client.NewClient("tcp://127.0.0.1:2375", "v1.39", nil, nil)
+		cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.39", nil, nil)
 		if err != nil {
 			panic(err.Error())
 		}
