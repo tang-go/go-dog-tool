@@ -28,6 +28,12 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 		err = customerror.EnCodeError(define.StartListDockerLogErr, "Uid已经存在了")
 		return
 	}
+	reader, e := s.docker.ContainerLogs(ctx, request.ID, types.ContainerLogsOptions{ShowStderr: true, ShowStdout: true, Follow: true, Tail: "100"})
+	if e != nil {
+		log.Errorln("获取容器ID ", request.ID, " 错误 ", e.Error())
+		err = customerror.EnCodeError(define.StartListDockerLogErr, e.Error())
+		return
+	}
 	logs, e := s.docker.ContainerAttach(ctx, request.ID, types.ContainerAttachOptions{Stderr: true, Stdout: true, Stream: true, Logs: false})
 	if e != nil {
 		log.Errorln("获取容器ID ", request.ID, " 错误 ", e.Error())
@@ -35,6 +41,16 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 		return
 	}
 	go func() {
+		read := bufio.NewScanner(reader)
+		for read.Scan() {
+			if _, e := rpc.XtermPush(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), request.Address, request.Uid, read.Text()); e != nil {
+				log.Warnln("推送错误，退出", e.Error())
+				reader.Close()
+				return
+			}
+		}
+		log.Traceln("获取实时日志")
+		reader.Close()
 		s.dockerListn.Store(request.Uid, logs.Conn)
 		scanner := bufio.NewScanner(logs.Conn)
 		for scanner.Scan() {
