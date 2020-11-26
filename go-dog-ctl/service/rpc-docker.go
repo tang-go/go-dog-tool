@@ -24,7 +24,7 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 		err = customerror.EnCodeError(define.AdminTokenErr, "token失效或者不正确")
 		return
 	}
-	if _, ok := s.dockerListn.Load(request.Uid); ok {
+	if _, ok := s.dockerListn.Load(request.UID); ok {
 		err = customerror.EnCodeError(define.StartListDockerLogErr, "Uid已经存在了")
 		return
 	}
@@ -43,7 +43,7 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 	go func() {
 		read := bufio.NewScanner(reader)
 		for read.Scan() {
-			if _, e := rpc.XtermPush(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), request.Address, request.Uid, read.Text()); e != nil {
+			if _, e := rpc.XtermPush(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), request.Address, request.UID, read.Text()); e != nil {
 				log.Warnln("推送错误，退出", e.Error())
 				reader.Close()
 				return
@@ -51,17 +51,17 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 		}
 		log.Traceln("获取实时日志")
 		reader.Close()
-		s.dockerListn.Store(request.Uid, logs.Conn)
+		s.dockerListn.Store(request.UID, logs.Conn)
 		scanner := bufio.NewScanner(logs.Conn)
 		for scanner.Scan() {
-			if _, e := rpc.XtermPush(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), request.Address, request.Uid, scanner.Text()); e != nil {
+			if _, e := rpc.XtermPush(s.service.GetClient(), context.WithTimeout(ctx, int64(time.Second*time.Duration(6))), request.Address, request.UID, scanner.Text()); e != nil {
 				logs.Conn.Close()
 				log.Warnln("推送错误，退出", e.Error())
 				break
 			}
 		}
-		s.dockerListn.Delete(request.Uid)
-		log.Warnln("链接关闭，正常退出", request.Uid)
+		s.dockerListn.Delete(request.UID)
+		log.Warnln("链接关闭，正常退出", request.UID)
 	}()
 	response.Success = true
 	return
@@ -69,7 +69,7 @@ func (s *Service) StartListDockerLog(ctx plugins.Context, request param.StartLis
 
 //EndListDockerLog 结束监听docker日志
 func (s *Service) EndListDockerLog(ctx plugins.Context, request param.EndListDockerLogReq) (response param.EndListDockerLogRes, err error) {
-	value, ok := s.dockerListn.Load(request.Uid)
+	value, ok := s.dockerListn.Load(request.UID)
 	if !ok {
 		//此处表示已经先退出的链接
 		response.Success = true
@@ -77,7 +77,7 @@ func (s *Service) EndListDockerLog(ctx plugins.Context, request param.EndListDoc
 	}
 	if conn, ok := value.(net.Conn); ok {
 		conn.Close()
-		log.Warnln("链接关闭，正常退出", request.Uid)
+		log.Warnln("链接关闭，正常退出", request.UID)
 	}
 	response.Success = true
 	return

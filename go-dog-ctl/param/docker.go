@@ -3,7 +3,7 @@ package param
 //StartListDockerLogReq 开始监听docker日志
 type StartListDockerLogReq struct {
 	ID      string `json:"id" description:"镜像ID" type:"string"`
-	Uid     string `json:"uid" description:"Uid" type:"string"`
+	UID     string `json:"uid" description:"Uid" type:"string"`
 	Address string `json:"address" description:"网关地址" type:"string"`
 }
 
@@ -14,12 +14,53 @@ type StartListDockerLogRes struct {
 
 //EndListDockerLogReq 结束监听docker日志
 type EndListDockerLogReq struct {
-	Uid string `json:"uid" description:"Uid" type:"string"`
+	UID string `json:"uid" description:"Uid" type:"string"`
 }
 
 //EndListDockerLogRes 结束监听docker日志
 type EndListDockerLogRes struct {
 	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
+//CreateImageReq 创建镜像
+type CreateImageReq struct {
+	Image   string `json:"image" description:"镜像" type:"string"`
+	Account string `json:"content" description:"账号" type:"string"`
+	Pwd     string `json:"pwd" description:"密码" type:"string"`
+}
+
+//CreateImageRes 创建镜像
+type CreateImageRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
+//DelImageReq 删除镜像
+type DelImageReq struct {
+	ID string `json:"id" description:"镜像仓库ID" type:"string"`
+}
+
+//DelImageRes 删除镜像
+type DelImageRes struct {
+	Success bool `json:"success" description:"结果" type:"bool"`
+}
+
+//GetImageListReq 获取镜像仓库列表
+type GetImageListReq struct {
+	ID string `json:"id" description:"镜像仓库ID" type:"string"`
+}
+
+//GetImageListRes 获取镜像仓库列表
+type GetImageListRes struct {
+	Images []Image `json:"images" description:"列表" type:"[]Image"`
+}
+
+//Image image账号密码
+type Image struct {
+	ID      uint   `json:"id" description:"ID" type:"uint"`
+	Image   string `json:"image" description:"镜像" type:"string"`
+	Account string `json:"content" description:"账号" type:"string"`
+	Pwd     string `json:"pwd" description:"密码" type:"string"`
+	Time    string `json:"time" description:"时间" type:"string"`
 }
 
 //DelDockerReq 删除镜像请求

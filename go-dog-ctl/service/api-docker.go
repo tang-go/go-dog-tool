@@ -19,6 +19,21 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
+//CreateHarbor 创建image账号
+func (s *Service) CreateImage(ctx plugins.Context, request param.CreateImageReq) (response param.CreateImageRes, err error) {
+	return
+}
+
+//DelImage 删除image账号
+func (s *Service) DelImage(ctx plugins.Context, request param.DelImageReq) (response param.DelImageRes, err error) {
+	return
+}
+
+//GetImageList 获取images账号列表
+func (s *Service) GetImageList(ctx plugins.Context, request param.GetImageListReq) (response param.GetImageListRes, err error) {
+	return
+}
+
 //DelDocker 删除镜像
 func (s *Service) DelDocker(ctx plugins.Context, request param.DelDockerReq) (response param.DelDockerRes, err error) {
 	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
