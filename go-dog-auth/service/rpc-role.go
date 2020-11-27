@@ -218,6 +218,7 @@ func (s *Service) DelMenu(ctx plugins.Context, request param.DelMenuReq) (respon
 
 //CreateAPI 创建api
 func (s *Service) CreateAPI(ctx plugins.Context, request param.CreateAPIReq) (response param.CreateAPIRes, err error) {
+	//request.API = strings.ToLower(request.API)
 	sysAPI := new(table.SysAPI)
 	if s.mysql.GetReadEngine().Where("organize = ? AND api = ?", request.Organize, request.API).First(&sysAPI).RecordNotFound() == true {
 		api := table.SysAPI{
@@ -232,6 +233,13 @@ func (s *Service) CreateAPI(ctx plugins.Context, request param.CreateAPIReq) (re
 		}
 		response.ID = api.ID
 		return
+	} else {
+		//更新
+		if request.Describe != sysAPI.Describe {
+			s.mysql.GetWriteEngine().Model(&table.SysAPI{}).Where("id = ?", sysAPI.ID).Updates(map[string]interface{}{
+				"Describe": request.Describe,
+			})
+		}
 	}
 	response.ID = sysAPI.ID
 	return

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"sort"
+
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog/plugins"
 )
@@ -43,8 +45,13 @@ func (s *Service) GetServiceList(ctx plugins.Context, req param.GetServiceReq) (
 			s.Info = append(s.Info, info)
 		}
 	}
-	for _, s := range mp {
-		res.List = append(res.List, s)
+	var strs []string
+	for k := range mp {
+		strs = append(strs, k)
+	}
+	sort.Strings(strs)
+	for _, k := range strs {
+		res.List = append(res.List, mp[k])
 	}
 	return
 }

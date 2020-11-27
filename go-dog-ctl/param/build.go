@@ -2,15 +2,11 @@ package param
 
 //BuildServiceReq 编译发布服务请求
 type BuildServiceReq struct {
-	Git        string `json:"git" description:"代码git地址" type:"string"`
-	GitAccount string `json:"gitAccount" description:"git账号" type:"string"`
-	GitPwd     string `json:"gitPwd" description:"git密码" type:"string"`
-	Path       string `json:"path" description:"编译项目的目录" type:"string"`
-	Name       string `json:"name" description:"镜像名称" type:"string"`
-	Harbor     string `json:"harbor" description:"镜像仓库" type:"string"`
-	Accouunt   string `json:"account" description:"Hrabor账号" type:"string"`
-	Pwd        string `json:"pwd" description:"Harbor密码" type:"string"`
-	Version    string `json:"version" description:"版本号" type:"string"`
+	Git     uint   `json:"git" description:"git仓库id" type:"uint"`
+	Path    string `json:"path" description:"编译项目的目录" type:"string"`
+	Name    string `json:"name" description:"镜像名称" type:"string"`
+	Image   uint   `json:"image" description:"镜像仓库" type:"uint"`
+	Version string `json:"version" description:"版本号" type:"string"`
 }
 
 //BuildServiceRes 编译发布服务返回

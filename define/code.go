@@ -86,4 +86,16 @@ const (
 	StartListDockerLogErr = 10040
 	//EndListDockerLogErr 结束监听docker日志
 	EndListDockerLogErr = 10041
+	//CreateImageErr 创建镜像账号密码错误
+	CreateImageErr = 10043
+	//DelImageErr 删除镜像密码错误
+	DelImageErr = 10044
+	//GetImageListErr 获取镜像账号密码列表失败
+	GetImageListErr = 10045
+	//CreateGitErr 创建git账密码
+	CreateGitErr = 10046
+	//DelGitErr 删除git账号密码
+	DelGitErr = 10047
+	//GetGitListErr 获取git账号密码错误
+	GetGitListErr = 10048
 )

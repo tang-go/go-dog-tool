@@ -20,6 +20,10 @@ func GETRouter(s *service.Service) {
 	//docker相关
 	s.GET("GetBuildServiceList", "v1", "get/build/service/list", 3, true, "获取编译发布记录", s.GetBuildServiceList)
 	s.GET("GetDockerList", "v1", "get/docker/list", 3, true, "获取docker运行服务", s.GetDockerList)
+	//镜像相关
+	s.GET("GetImageList", "v1", "get/image/list", 3, true, "获取镜像仓库列表", s.GetImageList)
+	//git相关
+	s.GET("GetGitList", "v1", "get/git/list", 3, true, "获取GIT仓库列表", s.GetGitList)
 	//k8s相关
 	//s.GET("GetKubernetesNameSpace", "v1", "get/kubernetes/namespace", 3, true, "获取k8s的namespace", s.GetKubernetesNameSpace)
 	//s.GET("GetKubernetesDeployments", "v1", "get/kubernetes/deployments", 3, true, "获取kubernetes的Deployments部署", s.GetKubernetesDeployments)

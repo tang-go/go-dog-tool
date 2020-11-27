@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
@@ -18,21 +16,6 @@ import (
 	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/plugins"
 )
-
-//CreateHarbor 创建image账号
-func (s *Service) CreateImage(ctx plugins.Context, request param.CreateImageReq) (response param.CreateImageRes, err error) {
-	return
-}
-
-//DelImage 删除image账号
-func (s *Service) DelImage(ctx plugins.Context, request param.DelImageReq) (response param.DelImageRes, err error) {
-	return
-}
-
-//GetImageList 获取images账号列表
-func (s *Service) GetImageList(ctx plugins.Context, request param.GetImageListReq) (response param.GetImageListRes, err error) {
-	return
-}
 
 //DelDocker 删除镜像
 func (s *Service) DelDocker(ctx plugins.Context, request param.DelDockerReq) (response param.DelDockerRes, err error) {
@@ -71,26 +54,56 @@ func (s *Service) RestartDocker(ctx plugins.Context, request param.RestartDocker
 	}
 	docker := new(table.Docker)
 	if s.mysql.GetReadEngine().Where("id = ?", request.DockerID).First(docker).RecordNotFound() == true {
-		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		err = customerror.EnCodeError(define.RestartDockerErr, "DockerID不正确")
 		return
 	}
 	if admin.OwnerID != docker.OwnerID {
-		err = customerror.EnCodeError(define.DelDockerErr, "DockerID不正确")
+		err = customerror.EnCodeError(define.RestartDockerErr, "DockerID不正确")
 		return
 	}
-	param := param.StartDockerReq{
-		Name:    docker.Name,
-		Images:  docker.Image,
-		Account: docker.Account,
-		Pwd:     docker.Pwd,
-	}
-	json.Unmarshal([]byte(docker.Ports), &param.Ports)
-	res, e := s.StartDocker(ctx, param)
-	if e != nil {
-		err = customerror.EnCodeError(define.DelDockerErr, e.Error())
+	var ports []*param.Ports
+	if e := json.Unmarshal([]byte(docker.Ports), &ports); e != nil {
+		log.Errorln(e)
+		err = customerror.EnCodeError(define.RestartDockerErr, "ports不正确")
 		return
 	}
-	response.Success = res.Success
+	//重启
+	name := fmt.Sprintf("%d-%s", admin.OwnerID, docker.Name)
+	s._CloseDocker(name)
+	go func() {
+		e := s._StartDocker(ctx.GetToken(), docker.Image, name, docker.Account, docker.Pwd, ports)
+		if e != nil {
+			log.Errorln(e)
+			return
+		}
+	}()
+	//生成登录记录
+	tbLog := &table.Log{
+		//日志ID
+		LogID: s.snowflake.GetID(),
+		//类型
+		Type: table.RestartDockerType,
+		//操作人
+		AdminID: admin.AdminID,
+		//名称
+		AdminName: admin.Name,
+		//操作方法
+		Method: "RestartDocker",
+		//描述
+		Description: "重启docker服务",
+		//业主ID
+		OwnerID: admin.OwnerID,
+		//操作IP
+		IP: ctx.GetAddress(),
+		//操作URL
+		URL: ctx.GetURL(),
+		//操作时间
+		Time: time.Now().Unix(),
+	}
+	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
+		log.Errorln(e.Error())
+	}
+	response.Success = true
 	return
 }
 
@@ -101,47 +114,22 @@ func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq)
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}
+	//获取镜像仓库
+	image := new(table.Image)
+	if e := s.mysql.GetReadEngine().Where("owner_id = ? AND id = ?", admin.OwnerID, request.Image).First(image).Error; e != nil {
+		err = customerror.EnCodeError(define.StartDockerErr, "镜像仓库ID不正确")
+		return
+	}
 	//重启
 	name := fmt.Sprintf("%d-%s", admin.OwnerID, request.Name)
+	imagesAddress := image.Address + `/` + request.Name + `:` + request.Version
 	s._CloseDocker(name)
 	go func() {
-		if e := s._PullImage(request.Account, request.Pwd, request.Images, func(res string) {
-			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, res)
-		}); e != nil {
-			log.Errorln(e.Error())
-			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
-		}
-		config := &container.Config{
-			Image:      request.Images,
-			Domainname: name,
-		}
-		portSet := make(map[nat.Port]struct{})
-		portBindings := make(map[nat.Port][]nat.PortBinding)
-		for _, port := range request.Ports {
-			portSet[nat.Port(port.InsidePort)] = struct{}{}
-			portBindings[nat.Port(port.InsidePort)] = []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: port.ExternalPort,
-				},
-			}
-		}
-		config.ExposedPorts = portSet
-		hostConfig := &container.HostConfig{
-			PortBindings: portBindings,
-		}
-		containerResp, e := s.docker.ContainerCreate(ctx, config, hostConfig, nil, name)
+		e := s._StartDocker(ctx.GetToken(), imagesAddress, name, image.Account, image.Pwd, request.Ports)
 		if e != nil {
-			log.Errorln(e.Error())
-			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
+			log.Errorln(e)
 			return
 		}
-		if e := s.docker.ContainerStart(ctx, containerResp.ID, types.ContainerStartOptions{}); e != nil {
-			log.Errorln(e.Error())
-			s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, e.Error())
-			return
-		}
-		s._PuseMsgToAdmin(ctx.GetToken(), define.RunDockerTopic, "启动成功")
 		if s.mysql.GetReadEngine().Where("name = ? AND owner_id = ?", request.Name, admin.OwnerID).First(&table.Docker{}).RecordNotFound() == true {
 			ps, _ := json.Marshal(request.Ports)
 			//添加记录
@@ -153,11 +141,11 @@ func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq)
 				//编译发布的管理员
 				AdminID: admin.AdminID,
 				//发布镜像
-				Image: request.Images,
+				Image: imagesAddress,
 				//账号
-				Account: request.Account,
+				Account: image.Account,
 				//密码
-				Pwd: request.Pwd,
+				Pwd: image.Pwd,
 				//端口
 				Ports: string(ps),
 				//业主ID
@@ -189,14 +177,12 @@ func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq)
 		//操作IP
 		IP: ctx.GetAddress(),
 		//操作URL
-		URL: ctx.GetDataByKey("URL").(string),
+		URL: ctx.GetURL(),
 		//操作时间
 		Time: time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
 		log.Errorln(e.Error())
-		err = customerror.EnCodeError(define.StartDockerErr, "插入数据库记录失败")
-		return
 	}
 	response.Success = true
 	return
@@ -233,7 +219,7 @@ func (s *Service) CloseDocker(ctx plugins.Context, request param.CloseDockerReq)
 		//操作IP
 		IP: ctx.GetAddress(),
 		//操作URL
-		URL: ctx.GetDataByKey("URL").(string),
+		URL: ctx.GetURL(),
 		//操作时间
 		Time: time.Now().Unix(),
 	}

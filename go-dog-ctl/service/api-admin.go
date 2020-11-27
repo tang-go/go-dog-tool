@@ -8,7 +8,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/tang-go/go-dog-tool/define"
-	authAPI "github.com/tang-go/go-dog-tool/go-dog-auth/api"
+	authRPC "github.com/tang-go/go-dog-tool/go-dog-auth/rpc"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
 	customerror "github.com/tang-go/go-dog/error"
@@ -46,7 +46,7 @@ func (s *Service) CreateAdmin(ctx plugins.Context, request param.CreateAdminReq)
 				Description: "创建管理员",
 				OwnerID:     admin.OwnerID,
 				IP:          ctx.GetAddress(),
-				URL:         ctx.GetDataByKey("URL").(string),
+				URL:         ctx.GetURL(),
 				Time:        time.Now().Unix(),
 			}
 			tx := s.mysql.GetWriteEngine().Begin()
@@ -96,7 +96,7 @@ func (s *Service) DisableAdmin(ctx plugins.Context, request param.DisableAdminRe
 		Description: "禁用管理员",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	tx := s.mysql.GetWriteEngine().Begin()
@@ -139,7 +139,7 @@ func (s *Service) OpenAdmin(ctx plugins.Context, request param.OpenAdminReq) (re
 		Description: "开启管理员",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	tx := s.mysql.GetWriteEngine().Begin()
@@ -182,7 +182,7 @@ func (s *Service) DelAdmin(ctx plugins.Context, request param.DelAdminReq) (resp
 		Description: "删除管理员",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	tx := s.mysql.GetWriteEngine().Begin()
@@ -226,14 +226,14 @@ func (s *Service) GetAdminList(ctx plugins.Context, request param.GetAdminListRe
 			Time:      time.Unix(item.Time, 0).Format("2006-01-02 15:04:05"),
 		}
 		//获取权限信息
-		role, e := authAPI.SelectRoleByID(ctx, define.Organize, item.RoleID)
+		role, e := authRPC.SelectRoleByID(ctx, define.Organize, item.RoleID)
 		if e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色信息失败")
 			return
 		}
 		//获取菜单信息
-		menus, e := authAPI.GetRoleMenu(ctx, define.Organize, item.RoleID)
+		menus, e := authRPC.GetRoleMenu(ctx, define.Organize, item.RoleID)
 		if e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -259,7 +259,7 @@ func (s *Service) GetAdminList(ctx plugins.Context, request param.GetAdminListRe
 		}
 		sort.Sort(RoleMenuSort(admininfo.Menu))
 		//获取api
-		apis, e := authAPI.GetRoleAPI(ctx, define.Organize, item.RoleID)
+		apis, e := authRPC.GetRoleAPI(ctx, define.Organize, item.RoleID)
 		if e != nil {
 			log.Errorln(e.Error())
 			err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -292,14 +292,14 @@ func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoRe
 	response.Avatar = "/avatar2.jpg"
 	response.Phone = admin.Phone
 	//获取权限信息
-	role, e := authAPI.SelectRoleByID(ctx, define.Organize, admin.RoleID)
+	role, e := authRPC.SelectRoleByID(ctx, define.Organize, admin.RoleID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色信息失败")
 		return
 	}
 	//获取菜单信息
-	menus, e := authAPI.GetRoleMenu(ctx, define.Organize, role.ID)
+	menus, e := authRPC.GetRoleMenu(ctx, define.Organize, role.ID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -325,7 +325,7 @@ func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoRe
 	}
 	sort.Sort(RoleMenuSort(response.Menu))
 	//获取api
-	apis, e := authAPI.GetRoleAPI(ctx, define.Organize, admin.RoleID)
+	apis, e := authRPC.GetRoleAPI(ctx, define.Organize, admin.RoleID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -383,7 +383,7 @@ func (s *Service) AdminLogin(ctx plugins.Context, request param.AdminLoginReq) (
 		//操作IP
 		IP: ctx.GetAddress(),
 		//操作URL
-		URL: ctx.GetDataByKey("URL").(string),
+		URL: ctx.GetURL(),
 		//操作时间
 		Time: time.Now().Unix(),
 	}

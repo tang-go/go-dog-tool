@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/tang-go/go-dog-tool/define"
-	authAPI "github.com/tang-go/go-dog-tool/go-dog-auth/api"
 	authParam "github.com/tang-go/go-dog-tool/go-dog-auth/param"
+	authRPC "github.com/tang-go/go-dog-tool/go-dog-auth/rpc"
 	authTable "github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/param"
 	"github.com/tang-go/go-dog-tool/go-dog-ctl/table"
@@ -98,7 +98,7 @@ func (s *Service) _AssembleRoleMenu(m *param.RoleMenu, source []authParam.RoleMe
 //GetMenu 获取菜单
 func (s *Service) GetMenu(ctx plugins.Context, request param.GetMenuReq) (response param.GetMenuRes, err error) {
 	//获取菜单信息
-	menus, e := authAPI.SelectMenu(ctx, define.Organize)
+	menus, e := authRPC.SelectMenu(ctx, define.Organize)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetMenuErr, "管理员角色菜单失败")
@@ -130,7 +130,7 @@ func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	if _, e := authAPI.CreateMenu(ctx, define.Organize, request.Describe, request.URL, request.ParentID, request.Sort); e != nil {
+	if _, e := authRPC.CreateMenu(ctx, define.Organize, request.Describe, request.URL, request.ParentID, request.Sort); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.CreateMenuErr, "创建菜单失败")
 		return
@@ -145,7 +145,7 @@ func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (
 		Description: "创建菜单",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -162,7 +162,7 @@ func (s *Service) DelMenu(ctx plugins.Context, request param.DelMenuReq) (respon
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	if _, e := authAPI.DelMenu(ctx, define.Organize, request.MenuID); e != nil {
+	if _, e := authRPC.DelMenu(ctx, define.Organize, request.MenuID); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelMenuErr, "删除菜单失败")
 		return
@@ -177,7 +177,7 @@ func (s *Service) DelMenu(ctx plugins.Context, request param.DelMenuReq) (respon
 		Description: "删除菜单",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -189,7 +189,7 @@ func (s *Service) DelMenu(ctx plugins.Context, request param.DelMenuReq) (respon
 
 //GetAPIList 获取API列表
 func (s *Service) GetAPIList(ctx plugins.Context, request param.GetAPIListReq) (response param.GetAPIListRes, err error) {
-	apis, e := authAPI.SelectAPI(ctx, define.Organize)
+	apis, e := authRPC.SelectAPI(ctx, define.Organize)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAPIListErr, "获取API列表失败")
@@ -214,7 +214,7 @@ func (s *Service) DelAPI(ctx plugins.Context, request param.DelAPIReq) (response
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	_, e := authAPI.DelAPI(ctx, define.Organize, request.ID)
+	_, e := authRPC.DelAPI(ctx, define.Organize, request.ID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelAPIErr, "删除API失败")
@@ -230,7 +230,7 @@ func (s *Service) DelAPI(ctx plugins.Context, request param.DelAPIReq) (response
 		Description: "删除API",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -242,7 +242,7 @@ func (s *Service) DelAPI(ctx plugins.Context, request param.DelAPIReq) (response
 
 //GetRoleList 获取角色列表
 func (s *Service) GetRoleList(ctx plugins.Context, request param.GetRoleListReq) (response param.GetRoleListRes, err error) {
-	roles, e := authAPI.SelectRoleByOrganize(ctx, define.Organize)
+	roles, e := authRPC.SelectRoleByOrganize(ctx, define.Organize)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetRoleListErr, "管理员角色菜单失败")
@@ -268,7 +268,7 @@ func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	id, e := authAPI.CreateRole(ctx, define.Organize, request.Name, request.Describe, false)
+	id, e := authRPC.CreateRole(ctx, define.Organize, request.Name, request.Describe, false)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.CreateRoleErr, "创建角色失败")
@@ -284,7 +284,7 @@ func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (
 		Description: "创建角色",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -301,7 +301,7 @@ func (s *Service) DelRole(ctx plugins.Context, request param.DelRoleReq) (respon
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	if _, e := authAPI.DelRole(ctx, define.Organize, request.ID); e != nil {
+	if _, e := authRPC.DelRole(ctx, define.Organize, request.ID); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelRoleErr, "删除角色失败")
 		return
@@ -316,7 +316,7 @@ func (s *Service) DelRole(ctx plugins.Context, request param.DelRoleReq) (respon
 		Description: "删除角色",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -329,7 +329,7 @@ func (s *Service) DelRole(ctx plugins.Context, request param.DelRoleReq) (respon
 //GetRoleMenu 获取角色菜单列表
 func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq) (response param.GetRoleMenuRes, err error) {
 	//获取菜单信息
-	menus, e := authAPI.GetRoleMenu(ctx, define.Organize, request.RoleID)
+	menus, e := authRPC.GetRoleMenu(ctx, define.Organize, request.RoleID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -364,7 +364,7 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	_, e := authAPI.BindRoleMenu(ctx, define.Organize, request.MenuID, request.RoleID, request.Add, request.Del, request.Update, request.Select)
+	_, e := authRPC.BindRoleMenu(ctx, define.Organize, request.MenuID, request.RoleID, request.Add, request.Del, request.Update, request.Select)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.BindRoleMenuErr, "绑定角色菜单失败")
@@ -380,7 +380,7 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 		Description: "绑定角色菜单",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -397,7 +397,7 @@ func (s *Service) DelRoleMenu(ctx plugins.Context, request param.DelRoleMenuReq)
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	if _, e := authAPI.DelRoleMenu(ctx, define.Organize, request.RoleID, request.MenuID); e != nil {
+	if _, e := authRPC.DelRoleMenu(ctx, define.Organize, request.RoleID, request.MenuID); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelRoleErr, "删除角色失败")
 		return
@@ -412,7 +412,7 @@ func (s *Service) DelRoleMenu(ctx plugins.Context, request param.DelRoleMenuReq)
 		Description: "删除角色菜单",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -424,7 +424,7 @@ func (s *Service) DelRoleMenu(ctx plugins.Context, request param.DelRoleMenuReq)
 
 //GetRoleAPI 获取角色API列表
 func (s *Service) GetRoleAPI(ctx plugins.Context, request param.GetRoleAPIReq) (response param.GetRoleAPIRes, err error) {
-	apis, e := authAPI.GetRoleAPI(ctx, define.Organize, request.RoleID)
+	apis, e := authRPC.GetRoleAPI(ctx, define.Organize, request.RoleID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员角色菜单失败")
@@ -449,7 +449,7 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	_, e := authAPI.BindRoleAPI(ctx, define.Organize, request.RoleID, request.APIID)
+	_, e := authRPC.BindRoleAPI(ctx, define.Organize, request.RoleID, request.APIID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.BindRoleAPIErr, "绑定角色API失败")
@@ -465,7 +465,7 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 		Description: "绑定角色API",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {
@@ -483,7 +483,7 @@ func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (
 		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
 		return
 	}
-	if _, e := authAPI.DelRoleAPI(ctx, define.Organize, request.RoleID, request.APIID); e != nil {
+	if _, e := authRPC.DelRoleAPI(ctx, define.Organize, request.RoleID, request.APIID); e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelRoleAPIErr, "删除角色API失败")
 		return
@@ -498,7 +498,7 @@ func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (
 		Description: "删除角色API",
 		OwnerID:     admin.OwnerID,
 		IP:          ctx.GetAddress(),
-		URL:         ctx.GetDataByKey("URL").(string),
+		URL:         ctx.GetURL(),
 		Time:        time.Now().Unix(),
 	}
 	if e := s.mysql.GetWriteEngine().Create(&tbLog).Error; e != nil {

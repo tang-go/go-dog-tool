@@ -1,4 +1,4 @@
-package api
+package rpc
 
 import (
 	"github.com/tang-go/go-dog-tool/define"

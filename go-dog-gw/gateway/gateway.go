@@ -208,7 +208,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	ctx.SetIsTest(isTest)
 	ctx.SetTraceID(traceID)
 	ctx.SetToken(token)
-	ctx.SetData("URL", url)
+	ctx.SetURL(url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
@@ -291,7 +291,7 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	ctx.SetIsTest(isTest)
 	ctx.SetTraceID(traceID)
 	ctx.SetToken(token)
-	ctx.SetData("URL", url)
+	ctx.SetURL(url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {

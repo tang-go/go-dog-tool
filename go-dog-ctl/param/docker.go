@@ -22,47 +22,6 @@ type EndListDockerLogRes struct {
 	Success bool `json:"success" description:"结果" type:"bool"`
 }
 
-//CreateImageReq 创建镜像
-type CreateImageReq struct {
-	Image   string `json:"image" description:"镜像" type:"string"`
-	Account string `json:"content" description:"账号" type:"string"`
-	Pwd     string `json:"pwd" description:"密码" type:"string"`
-}
-
-//CreateImageRes 创建镜像
-type CreateImageRes struct {
-	Success bool `json:"success" description:"结果" type:"bool"`
-}
-
-//DelImageReq 删除镜像
-type DelImageReq struct {
-	ID string `json:"id" description:"镜像仓库ID" type:"string"`
-}
-
-//DelImageRes 删除镜像
-type DelImageRes struct {
-	Success bool `json:"success" description:"结果" type:"bool"`
-}
-
-//GetImageListReq 获取镜像仓库列表
-type GetImageListReq struct {
-	ID string `json:"id" description:"镜像仓库ID" type:"string"`
-}
-
-//GetImageListRes 获取镜像仓库列表
-type GetImageListRes struct {
-	Images []Image `json:"images" description:"列表" type:"[]Image"`
-}
-
-//Image image账号密码
-type Image struct {
-	ID      uint   `json:"id" description:"ID" type:"uint"`
-	Image   string `json:"image" description:"镜像" type:"string"`
-	Account string `json:"content" description:"账号" type:"string"`
-	Pwd     string `json:"pwd" description:"密码" type:"string"`
-	Time    string `json:"time" description:"时间" type:"string"`
-}
-
 //DelDockerReq 删除镜像请求
 type DelDockerReq struct {
 	DockerID string `json:"dockerId" description:"ID" type:"string"`
@@ -96,9 +55,8 @@ type CloseDockerRes struct {
 //StartDockerReq 启动Docker请求
 type StartDockerReq struct {
 	Name    string   `json:"name" description:"服务名称" type:"string"`
-	Images  string   `json:"images" description:"镜像地址" type:"string"`
-	Account string   `json:"account" description:"账号" type:"string"`
-	Pwd     string   `json:"pwd" description:"密码" type:"string"`
+	Image   uint     `json:"image" description:"镜像仓库地址" type:"uint"`
+	Version string   `json:"version" description:"版本" type:"string"`
 	Ports   []*Ports `json:"ports" description:"服务暴露端口" type:"[]*Ports"`
 }
 

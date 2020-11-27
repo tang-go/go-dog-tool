@@ -9,6 +9,8 @@ const (
 	CloseDockerType
 	//StartDockerType 启动docker服务
 	StartDockerType
+	//RestartDockerType 重启docker服务
+	RestartDockerType
 	//CreateMenuType 创建菜单
 	CreateMenuType
 	//DelMenuType 删除菜单
@@ -35,6 +37,14 @@ const (
 	OpenAdminType
 	//DelAdminType 删除管理员
 	DelAdminType
+	//CreateImageType 创建镜像账号密码
+	CreateImageType
+	//DelImageType 删除镜像账号密码
+	DelImageType
+	//CreateGitType 创建git账号密码
+	CreateGitType
+	//DelGitType 删除git账号密码
+	DelGitType
 )
 
 //Log 日志

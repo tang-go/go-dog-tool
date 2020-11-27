@@ -63,7 +63,19 @@ func (s *Service) BuildService(ctx plugins.Context, request param.BuildServiceRe
 		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
 		return
 	}
-	paths := strings.Split(request.Git, "/")
+	//获取git仓库地址
+	git := new(table.Git)
+	if e := s.mysql.GetReadEngine().Where("owner_id = ? AND id = ?", admin.OwnerID, request.Git).First(git).Error; e != nil {
+		err = customerror.EnCodeError(define.BuildServiceErr, "GIT仓库ID不正确")
+		return
+	}
+	//获取镜像仓库
+	image := new(table.Image)
+	if e := s.mysql.GetReadEngine().Where("owner_id = ? AND id = ?", admin.OwnerID, request.Image).First(image).Error; e != nil {
+		err = customerror.EnCodeError(define.BuildServiceErr, "镜像仓库ID不正确")
+		return
+	}
+	paths := strings.Split(git.Address, "/")
 	l := len(paths)
 	if l <= 0 {
 		err = customerror.EnCodeError(define.BuildServiceErr, "路径不正确")
@@ -74,7 +86,7 @@ func (s *Service) BuildService(ctx plugins.Context, request param.BuildServiceRe
 		ID:      s.snowflake.GetID(),
 		AdminID: admin.AdminID,
 		Status:  false,
-		Image:   request.Harbor + "/" + request.Name + ":" + request.Version,
+		Image:   image.Address + "/" + request.Name + ":" + request.Version,
 		OwnerID: admin.OwnerID,
 		Time:    time.Now().Unix(),
 	}
@@ -97,7 +109,7 @@ func (s *Service) BuildService(ctx plugins.Context, request param.BuildServiceRe
 		//操作IP
 		IP: ctx.GetAddress(),
 		//操作URL
-		URL: ctx.GetDataByKey("URL").(string),
+		URL: ctx.GetURL(),
 		//操作时间
 		Time: time.Now().Unix(),
 	}

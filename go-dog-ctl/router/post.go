@@ -28,6 +28,12 @@ func POSTRouter(s *service.Service) {
 	s.POST("CloseDocker", "v1", "clsoe/docker", 3, true, "关闭docker服务", s.CloseDocker)
 	s.POST("DelDocker", "v1", "del/docker", 3, true, "删除docker服务", s.DelDocker)
 	s.POST("RestartDocker", "v1", "restart/docker", 3, true, "重启docker服务", s.RestartDocker)
+	//镜像仓库相关
+	s.POST("CreateImage", "v1", "create/image", 3, true, "创建镜像仓库", s.CreateImage)
+	s.POST("DelImage", "v1", "del/image", 3, true, "删除镜像仓库", s.DelImage)
+	//GIT仓库相关
+	s.POST("CreateGit", "v1", "create/git", 3, true, "创建GIT仓库", s.CreateGit)
+	s.POST("DelGit", "v1", "del/git", 3, true, "删除GIT仓库", s.DelGit)
 	//k8s相关
 	//s.POST("CreateKubernetesDeployment", "v1", "create/kubernetes/deployment", 3, true, "创建一个kubernetes部署", s.CreateKubernetesDeployment)
 	//s.POST("DeleteKubernetesDeployment", "v1", "delete/kubernetes/deployment", 3, true, "删除一个kubernetes部署", s.DeleteKubernetesDeployment)
