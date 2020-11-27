@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog/log"
 )
 
@@ -415,9 +416,9 @@ func (g *Gateway) assembleDocs() string {
 	definitions := make(map[string]Definitions)
 
 	g.discovery.RangeAPI(func(url string, api *ServcieAPI) {
-		// if api.Name == define.SvcController {
-		// 	return
-		// }
+		if api.Name == define.SvcController {
+			return
+		}
 		if api.Method.Kind == "POST" {
 			api, d := createPOSTAPI(
 				api.Name,
