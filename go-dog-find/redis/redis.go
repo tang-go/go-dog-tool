@@ -43,6 +43,7 @@ func NewReids(cfg plugins.Cfg) *Redis {
 //Close 关闭
 func (r *Redis) Close() {
 	r.close <- true
+	r.cache.GetCache().Close()
 }
 
 //eventloop 事件处理器

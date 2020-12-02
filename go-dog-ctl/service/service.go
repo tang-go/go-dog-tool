@@ -230,6 +230,7 @@ func (s *Service) Run() error {
 	//s.etcd.Close()
 	s.wait.Wait()
 	s.closeEvent <- true
+	s.cache.GetCache().Close()
 	return err
 }
 

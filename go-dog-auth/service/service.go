@@ -4,6 +4,7 @@ import (
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog/cache"
+	"github.com/tang-go/go-dog/log"
 	"github.com/tang-go/go-dog/mysql"
 	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
@@ -61,5 +62,11 @@ func (s *Service) RPC(name string, level int8, isAuth bool, explain string, fn i
 
 //Run 启动
 func (s *Service) Run() error {
-	return s.service.Run()
+	err := s.service.Run()
+	if err != nil {
+		log.Errorln(err.Error())
+	}
+	//关闭缓存
+	s.cache.GetCache().Close()
+	return err
 }
