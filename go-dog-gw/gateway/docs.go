@@ -3,7 +3,7 @@ package gateway
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"html/template"
 	"strconv"
 	"strings"
@@ -136,7 +136,7 @@ func transformation(tp string, value string) (interface{}, error) {
 	case "int8":
 		i, e := strconv.ParseInt(value, 10, 8)
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("需要参数是int8 %s是", e.Error())
 		}
 		return int8(i), nil
 	case "int":
@@ -144,7 +144,7 @@ func transformation(tp string, value string) (interface{}, error) {
 	case "int32":
 		i, e := strconv.ParseInt(value, 10, 32)
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("需要参数是int32 %s是", e.Error())
 		}
 		return int32(i), nil
 	case "int64":
@@ -158,19 +158,19 @@ func transformation(tp string, value string) (interface{}, error) {
 	case "uint":
 		i, e := strconv.Atoi(value)
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("需要参数是uint %s是", e.Error())
 		}
 		return uint(i), nil
 	case "uint32":
 		i, e := strconv.ParseInt(value, 10, 32)
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("需要参数是uint32 %s是", e.Error())
 		}
 		return uint32(i), nil
 	case "uint64":
 		i, e := strconv.ParseInt(value, 10, 64)
 		if e != nil {
-			return nil, e
+			return nil, fmt.Errorf("需要参数是uint64 %s是", e.Error())
 		}
 		return uint64(i), nil
 	case "float32":
@@ -182,7 +182,7 @@ func transformation(tp string, value string) (interface{}, error) {
 	case "string":
 		return value, nil
 	default:
-		return tp, errors.New("参数错误")
+		return tp, fmt.Errorf("暂时不支持此类型参数%s", tp)
 	}
 }
 

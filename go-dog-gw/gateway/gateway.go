@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -182,17 +182,17 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	for key, value := range apiservice.Method.Request {
 		data := c.Query(key)
 		if data == "" {
-			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "参数不正确"))
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, fmt.Sprintf("参数%s不正确", key)))
 			return
 		}
 		vali, ok := value.(map[string]interface{})
 		if !ok {
-			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "参数不正确"))
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, fmt.Sprintf("参数%v类型不正确", value)))
 			return
 		}
 		tp, ok2 := vali["type"].(string)
 		if !ok2 {
-			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "参数不正确"))
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, fmt.Sprintf("参数%v类型不是string", vali["type"])))
 			return
 		}
 		v, err := transformation(tp, data)
@@ -318,7 +318,7 @@ func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, 
 	for key := range p {
 		if _, ok := tem[key]; !ok {
 			log.Traceln("模版", tem, "传入参数", p)
-			return nil, errors.New("参数内容不正确")
+			return nil, fmt.Errorf("需要参数:%v, 请求参数：%v", tem, p)
 		}
 	}
 	return g.service.GetClient().GetCodec().EnCode("json", p)
