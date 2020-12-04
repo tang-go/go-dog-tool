@@ -318,7 +318,7 @@ func (g *Gateway) validation(param string, tem map[string]interface{}) ([]byte, 
 	for key := range p {
 		if _, ok := tem[key]; !ok {
 			log.Traceln("模版", tem, "传入参数", p)
-			return nil, fmt.Errorf("需要参数:%v, 请求参数：%v", tem, p)
+			return nil, fmt.Errorf("不存在key为%s的参数", key)
 		}
 	}
 	return g.service.GetClient().GetCodec().EnCode("json", p)
