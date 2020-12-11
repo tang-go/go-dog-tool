@@ -238,9 +238,10 @@ func (s *Service) CloseDocker(ctx plugins.Context, request param.CloseDockerReq)
 
 //GetDockerList  获取docker列表
 func (s *Service) GetDockerList(ctx plugins.Context, request param.GetDockerListReq) (response param.GetDockerListRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	var dockers []table.Docker
