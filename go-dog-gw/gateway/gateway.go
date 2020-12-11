@@ -48,16 +48,6 @@ func NewGateway(listenSvcName ...string) *Gateway {
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
 	gateway.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
-	//初始化ws
-	gateway.websocket = make(map[string]func(c *gin.Context))
-	//初始化websocket客户端
-	gateway.ws = ws.NewWs(gateway.service)
-	//推送消息
-	gateway.service.RPC("Push", 3, false, "推送消息", gateway.ws.Push)
-	//初始化xterm客户端
-	gateway.xtermWs = xterm.NewWs(gateway.service)
-	//推送消息
-	gateway.service.RPC("XtermPush", 3, false, "Xterm推送消息", gateway.xtermWs.XtermPush)
 	//初始化文档
 	return gateway
 }
