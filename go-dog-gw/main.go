@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	gate := gateway.NewGateway(define.SvcController)
+	gate := gateway.NewGateway(define.SvcGateWay, define.SvcController)
 	//网关验证权限
 	gate.Auth(func(client plugins.Client, ctx plugins.Context, token, url string) error {
 		admin, err := rpc.Auth(client, ctx, token, url)

@@ -36,14 +36,14 @@ type Gateway struct {
 }
 
 //NewGateway  新建发现服务
-func NewGateway(listenSvcName ...string) *Gateway {
+func NewGateway(name string, listenSvcName ...string) *Gateway {
 	gateway := new(Gateway)
 	//初始化配置
 	cfg := config.NewConfig()
 	//初始化服务发现
 	gateway.discovery = NewGoDogDiscovery(listenSvcName, cfg.GetDiscovery())
 	//初始化rpc服务
-	gateway.service = service.CreateService(define.SvcGateWay, cfg, gateway.discovery)
+	gateway.service = service.CreateService(name, cfg, gateway.discovery)
 	//设置服务端最大访问量
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
