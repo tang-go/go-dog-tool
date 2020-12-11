@@ -18,9 +18,10 @@ func (s *Service) CreateGit(ctx plugins.Context, request param.CreateGitReq) (re
 		err = customerror.EnCodeError(define.CreateGitErr, "git仓库地址不能为空")
 		return
 	}
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	git := new(table.Git)
@@ -51,9 +52,10 @@ func (s *Service) CreateGit(ctx plugins.Context, request param.CreateGitReq) (re
 
 //DelGit 删除git账号
 func (s *Service) DelGit(ctx plugins.Context, request param.DelGitReq) (response param.DelGitRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if e := s._CreateLog(admin, table.DelGitType, ctx.GetAddress(), ctx.GetURL(), "DelGit", "删除git账号", func(tx *gorm.DB) error {
@@ -73,13 +75,14 @@ func (s *Service) DelGit(ctx plugins.Context, request param.DelGitReq) (response
 
 //GetGitList 获取gits账号列表
 func (s *Service) GetGitList(ctx plugins.Context, request param.GetGitListReq) (response param.GetGitListRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	var gits []table.Git
-	e := s.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Find(&gits).Error
+	e = s.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Find(&gits).Error
 	if e != nil {
 		err = customerror.EnCodeError(define.GetGitListErr, "获取Git列表失败")
 		return

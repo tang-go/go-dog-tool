@@ -12,15 +12,16 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
-//CreateHarbor 创建image账号
+//CreateImage 创建image账号
 func (s *Service) CreateImage(ctx plugins.Context, request param.CreateImageReq) (response param.CreateImageRes, err error) {
 	if request.Address == "" {
 		err = customerror.EnCodeError(define.CreateImageErr, "image仓库地址不能为空")
 		return
 	}
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	image := new(table.Image)
@@ -51,9 +52,10 @@ func (s *Service) CreateImage(ctx plugins.Context, request param.CreateImageReq)
 
 //DelImage 删除image账号
 func (s *Service) DelImage(ctx plugins.Context, request param.DelImageReq) (response param.DelImageRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if e := s._CreateLog(admin, table.DelImageType, ctx.GetAddress(), ctx.GetURL(), "DelImage", "删除image账号", func(tx *gorm.DB) error {
@@ -73,13 +75,14 @@ func (s *Service) DelImage(ctx plugins.Context, request param.DelImageReq) (resp
 
 //GetImageList 获取images账号列表
 func (s *Service) GetImageList(ctx plugins.Context, request param.GetImageListReq) (response param.GetImageListRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	var images []table.Image
-	e := s.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Find(&images).Error
+	e = s.mysql.GetReadEngine().Where("owner_id = ?", admin.OwnerID).Find(&images).Error
 	if e != nil {
 		err = customerror.EnCodeError(define.GetImageListErr, "获取镜像列表失败")
 		return

@@ -42,14 +42,17 @@ func HTTPRouter(router plugins.Service, s *service.Service) {
 			authRoleV1.APILevel(4).POST("DelRoleAPI", "del/role/api", "删除角色API", s.DelRoleAPI)
 
 		}
-		authServiceV1 := auth.APIGroup("服务相关").APIVersion("v1")
+		authServiceV1 := auth.APIGroup("在线服务").APIVersion("v1")
 		{
 			authServiceV1.APILevel(4).GET("GetServiceList", "get/service/list", "获取服务列表", s.GetServiceList)
-			authServiceV1.APILevel(4).POST("BuildService", "build/service", "编译发布服务", s.BuildService)
+		}
+		authBuildV1 := auth.APIGroup("编译发布").APIVersion("v1")
+		{
+			authBuildV1.APILevel(4).POST("BuildService", "build/service", "编译发布服务", s.BuildService)
+			authBuildV1.APILevel(4).GET("GetBuildServiceList", "get/build/service/list", "获取编译发布记录", s.GetBuildServiceList)
 		}
 		authDockerV1 := auth.APIGroup("docker相关").APIVersion("v1")
 		{
-			authDockerV1.APILevel(4).GET("GetBuildServiceList", "get/build/service/list", "获取编译发布记录", s.GetBuildServiceList)
 			authDockerV1.APILevel(4).GET("GetDockerList", "get/docker/list", "获取docker运行服务", s.GetDockerList)
 
 			authDockerV1.APILevel(4).POST("StartDocker", "strat/docker", "docker方式启动服务", s.StartDocker)

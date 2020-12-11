@@ -20,9 +20,10 @@ import (
 
 //CreateAdmin 创建管理员
 func (s *Service) CreateAdmin(ctx plugins.Context, request param.CreateAdminReq) (response param.CreateAdminRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	admininfo := new(table.Admin)
@@ -76,9 +77,10 @@ func (s *Service) CreateAdmin(ctx plugins.Context, request param.CreateAdminReq)
 
 //DisableAdmin 禁用管理员
 func (s *Service) DisableAdmin(ctx plugins.Context, request param.DisableAdminReq) (response param.DisableAdminRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	admininfo := new(table.Admin)
@@ -119,9 +121,10 @@ func (s *Service) DisableAdmin(ctx plugins.Context, request param.DisableAdminRe
 
 //OpenAdmin 开启管理员
 func (s *Service) OpenAdmin(ctx plugins.Context, request param.OpenAdminReq) (response param.OpenAdminRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	admininfo := new(table.Admin)
@@ -162,9 +165,10 @@ func (s *Service) OpenAdmin(ctx plugins.Context, request param.OpenAdminReq) (re
 
 //DelAdmin 删除管理员
 func (s *Service) DelAdmin(ctx plugins.Context, request param.DelAdminReq) (response param.DelAdminRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	admininfo := new(table.Admin)
@@ -205,9 +209,10 @@ func (s *Service) DelAdmin(ctx plugins.Context, request param.DelAdminReq) (resp
 
 //GetAdminList 获取管理员列表请求
 func (s *Service) GetAdminList(ctx plugins.Context, request param.GetAdminListReq) (response param.GetAdminListRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	var admins []table.Admin
@@ -282,9 +287,10 @@ func (s *Service) GetAdminList(ctx plugins.Context, request param.GetAdminListRe
 
 //GetAdminInfo 获取管理员信息
 func (s *Service) GetAdminInfo(ctx plugins.Context, request param.GetAdminInfoReq) (response param.GetAdminInfoRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	response.ID = strconv.FormatInt(admin.AdminID, 10)

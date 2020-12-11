@@ -15,9 +15,10 @@ import (
 
 //GetBuildServiceList 获取编译发布记录
 func (s *Service) GetBuildServiceList(ctx plugins.Context, request param.GetBuildServiceReq) (response param.GetBuildServiceRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	var builds []table.BuildService
@@ -58,9 +59,10 @@ func (s *Service) GetBuildServiceList(ctx plugins.Context, request param.GetBuil
 
 //BuildService 编译发布docker镜像
 func (s *Service) BuildService(ctx plugins.Context, request param.BuildServiceReq) (response param.BuildServiceRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	//获取git仓库地址

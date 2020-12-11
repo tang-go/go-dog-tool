@@ -30,13 +30,14 @@ type Gateway struct {
 	service   plugins.Service
 	ws        *ws.Ws
 	xtermWs   *xterm.Ws
+	websocket map[string]func(c *gin.Context)
+	authfunc  func(client plugins.Client, ctx plugins.Context, token, url string) error
 	discovery *GoDogDiscovery
 }
 
 //NewGateway  新建发现服务
 func NewGateway(listenSvcName ...string) *Gateway {
 	gateway := new(Gateway)
-	//初始化监听api
 	//初始化配置
 	cfg := config.NewConfig()
 	//初始化服务发现
@@ -47,6 +48,8 @@ func NewGateway(listenSvcName ...string) *Gateway {
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
 	gateway.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
+	//初始化ws
+	gateway.websocket = make(map[string]func(c *gin.Context))
 	//初始化websocket客户端
 	gateway.ws = ws.NewWs(gateway.service)
 	//推送消息
@@ -59,6 +62,21 @@ func NewGateway(listenSvcName ...string) *Gateway {
 	return gateway
 }
 
+//OpenWebSocket 开启websocket
+func (g *Gateway) OpenWebSocket(url string, f func(c *gin.Context)) {
+	g.websocket[url] = f
+}
+
+//GetService 获取sevice
+func (g *Gateway) GetService() plugins.Service {
+	return g.service
+}
+
+//Auth 验证权限
+func (g *Gateway) Auth(f func(client plugins.Client, ctx plugins.Context, token, url string) error) {
+	g.authfunc = f
+}
+
 //Run 启动
 func (g *Gateway) Run() {
 	go func() {
@@ -66,14 +84,10 @@ func (g *Gateway) Run() {
 		router := gin.New()
 		router.Use(g.cors())
 		router.Use(g.logger())
-		//websocket路由
-		router.GET("/ws", func(c *gin.Context) {
-			g.ws.Connect(c.Writer, c.Request, c)
-		})
-		//xtermws路由
-		router.GET("/xtermws", func(c *gin.Context) {
-			g.xtermWs.Connect(c.Writer, c.Request, c)
-		})
+
+		for url, f := range g.websocket {
+			router.GET(url, f)
+		}
 		//swagger 文档
 		router.GET("/swagger/*any", g.getSwagger)
 		//添加路由
@@ -172,14 +186,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
 		return
 	}
-	token := ""
-	if apiservice.Method.IsAuth {
-		token = c.Request.Header.Get("Token")
-		if token == "" {
-			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
-			return
-		}
-	}
+
 	p := make(map[string]interface{})
 	for key, value := range apiservice.Method.Request {
 		data := c.Query(key)
@@ -209,9 +216,26 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	ctx.SetAddress(c.ClientIP())
 	ctx.SetIsTest(isTest)
 	ctx.SetTraceID(traceID)
-	ctx.SetToken(token)
 	ctx.SetURL(url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
+	//查看方法是否需要验证权限
+	if apiservice.Method.IsAuth {
+		token := c.Request.Header.Get("Token")
+		if token == "" {
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
+			return
+		}
+		//验证权限
+		if g.authfunc != nil {
+			if err := g.authfunc(g.service.GetClient(), ctx, token, url); err != nil {
+				log.Errorln(err.Error())
+				c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不正确"))
+				return
+			}
+		}
+		//设置token
+		ctx.SetToken(token)
+	}
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)
@@ -270,14 +294,7 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
 		return
 	}
-	token := ""
-	if apiservice.Method.IsAuth {
-		token = c.Request.Header.Get("Token")
-		if token == "" {
-			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
-			return
-		}
-	}
+
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
@@ -292,9 +309,26 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	ctx.SetAddress(c.ClientIP())
 	ctx.SetIsTest(isTest)
 	ctx.SetTraceID(traceID)
-	ctx.SetToken(token)
 	ctx.SetURL(url)
 	ctx = context.WithTimeout(ctx, int64(time.Second*time.Duration(timeout)))
+	//查看方法是否需要验证权限
+	if apiservice.Method.IsAuth {
+		token := c.Request.Header.Get("Token")
+		if token == "" {
+			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不能为空"))
+			return
+		}
+		//验证权限
+		if g.authfunc != nil {
+			if err := g.authfunc(g.service.GetClient(), ctx, token, url); err != nil {
+				log.Errorln(err.Error())
+				c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, "token不正确"))
+				return
+			}
+		}
+		//设置token
+		ctx.SetToken(token)
+	}
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)

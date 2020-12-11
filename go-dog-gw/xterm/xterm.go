@@ -37,9 +37,11 @@ type Ws struct {
 
 //NewWs 新建ws
 func NewWs(service plugins.Service) *Ws {
-	return &Ws{
+	xtermWs := &Ws{
 		service: service,
 	}
+	service.RPC("XtermPush", 3, false, "Xterm推送消息", xtermWs.XtermPush)
+	return xtermWs
 }
 
 // Connect websocket链接
@@ -71,7 +73,7 @@ func (pointer *Ws) Connect(w http.ResponseWriter, r *http.Request, c *gin.Contex
 	log.Tracef("玩家%s调用方法%s获取%s信息关闭", token, method, id)
 }
 
-//Push 消息推送
+//XtermPush 消息推送
 func (pointer *Ws) XtermPush(ctx plugins.Context, request param.XtermPushReq) (response param.XtermPushRes, err error) {
 	log.Tracef("推送消息 | %s |", request.Uid)
 	value, ok := pointer.clitens.Load(request.Uid)

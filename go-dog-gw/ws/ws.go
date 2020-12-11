@@ -36,9 +36,11 @@ type Ws struct {
 
 //NewWs 新建ws
 func NewWs(service plugins.Service) *Ws {
-	return &Ws{
+	ws := &Ws{
 		service: service,
 	}
+	service.RPC("Push", 3, false, "推送消息", ws.Push)
+	return ws
 }
 
 // Connect websocket链接

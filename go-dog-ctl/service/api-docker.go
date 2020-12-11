@@ -19,9 +19,10 @@ import (
 
 //DelDocker 删除镜像
 func (s *Service) DelDocker(ctx plugins.Context, request param.DelDockerReq) (response param.DelDockerRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	docker := new(table.Docker)
@@ -47,9 +48,10 @@ func (s *Service) DelDocker(ctx plugins.Context, request param.DelDockerReq) (re
 
 //RestartDocker 重启镜像
 func (s *Service) RestartDocker(ctx plugins.Context, request param.RestartDockerReq) (response param.RestartDockerRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	docker := new(table.Docker)
@@ -109,9 +111,10 @@ func (s *Service) RestartDocker(ctx plugins.Context, request param.RestartDocker
 
 //StartDocker 以docker模式启动docker
 func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq) (response param.StartDockerRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	//获取镜像仓库
@@ -190,9 +193,10 @@ func (s *Service) StartDocker(ctx plugins.Context, request param.StartDockerReq)
 
 //CloseDocker 关闭docker容器
 func (s *Service) CloseDocker(ctx plugins.Context, request param.CloseDockerReq) (response param.CloseDockerRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetAdminInfoErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if e := s._CloseDocker(request.ID); e != nil {

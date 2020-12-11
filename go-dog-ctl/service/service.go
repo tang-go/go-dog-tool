@@ -48,11 +48,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-//Router 注册路由
-func (s *Service) Router() {
-
-}
-
 //write 实现
 type write struct {
 	read func([]byte)
@@ -128,7 +123,7 @@ func NewService(routers ...func(plugins.Service, *Service)) *Service {
 	//初始化rpc服务端
 	ctl.service = service.CreateService(define.SvcController, ctl.cfg)
 	//验证函数
-	ctl.service.Auth(ctl.Auth)
+	//ctl.service.Auth(ctl.Auth)
 	//设置服务端最大访问量
 	ctl.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
@@ -177,6 +172,13 @@ func NewService(routers ...func(plugins.Service, *Service)) *Service {
 	//启动
 	go ctl._EventExecution()
 	return ctl
+}
+
+//GetAdmin 获取管理员
+func (s *Service) GetAdmin(ctx plugins.Context) (*table.Admin, error) {
+	admin := new(table.Admin)
+	err := ctx.GetDataByKey("Admin", admin)
+	return admin, err
 }
 
 //Run 启动

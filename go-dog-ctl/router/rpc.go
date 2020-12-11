@@ -7,6 +7,7 @@ import (
 
 //RPCRouter rpc路由
 func RPCRouter(router plugins.Service, s *service.Service) {
+	router.RPC("Auth", 3, false, "验证管理员权限", s.Auth)
 	router.RPC("AdminOnline", 3, false, "管理员上线", s.AdminOnline)
 	router.RPC("AdminOffline", 3, false, "管理员下线", s.AdminOffline)
 	router.RPC("AuthAdmin", 3, false, "验证管理员", s.AuthAdmin)
