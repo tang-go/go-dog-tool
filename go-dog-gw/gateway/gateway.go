@@ -48,6 +48,7 @@ func NewGateway(listenSvcName ...string) *Gateway {
 	gateway.service.GetLimit().SetLimit(define.MaxServiceRequestCount)
 	//设置客户端最大访问量
 	gateway.service.GetClient().GetLimit().SetLimit(define.MaxClientRequestCount)
+	gateway.websocket = make(map[string]func(c *gin.Context))
 	//初始化文档
 	return gateway
 }
