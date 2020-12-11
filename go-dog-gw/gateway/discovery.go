@@ -15,9 +15,11 @@ import (
 
 //ServcieAPI api列表
 type ServcieAPI struct {
-	Method *serviceinfo.API
-	Name   string
-	Count  int32
+	Method  *serviceinfo.API
+	Tags    string
+	Name    string
+	Explain string
+	Count   int32
 }
 
 //GoDogDiscovery 服务发现
@@ -32,11 +34,12 @@ type GoDogDiscovery struct {
 	apidata    map[string]*serviceinfo.APIServiceInfo
 	rpcdata    map[string]*serviceinfo.RPCServiceInfo
 	apis       map[string]*ServcieAPI
+	listenAPI  map[string]string
 	lock       sync.RWMutex
 }
 
 //NewGoDogDiscovery  新建发现服务
-func NewGoDogDiscovery(address []string) *GoDogDiscovery {
+func NewGoDogDiscovery(listenSvcName, address []string) *GoDogDiscovery {
 	dis := &GoDogDiscovery{
 		address:    address,
 		ttl:        2 * time.Second,
@@ -47,8 +50,11 @@ func NewGoDogDiscovery(address []string) *GoDogDiscovery {
 		apidata:    make(map[string]*serviceinfo.APIServiceInfo),
 		rpcdata:    make(map[string]*serviceinfo.RPCServiceInfo),
 		apis:       make(map[string]*ServcieAPI),
+		listenAPI:  make(map[string]string),
 	}
-
+	for _, name := range listenSvcName {
+		dis.listenAPI[name] = name
+	}
 	index := rand.IntRand(0, dis.count)
 	addr := dis.address[index]
 	if err := dis._ConnectClient(addr); err != nil {
@@ -269,15 +275,20 @@ func (d *GoDogDiscovery) _APIWatch(datas []param.Data) {
 				log.Errorln(err.Error(), data.Key, data.Value)
 				continue
 			}
+			if _, ok := d.listenAPI[info.Name]; !ok {
+				continue
+			}
 			for _, method := range info.API {
-				url := "/api/" + info.Name + "/" + method.Version + "/" + method.Path
+				url := "/" + method.Path
 				if api, ok := d.apis[url]; ok {
 					api.Count++
 				} else {
 					d.apis[url] = &ServcieAPI{
-						Method: method,
-						Name:   info.Name,
-						Count:  1,
+						Method:  method,
+						Tags:    method.Group,
+						Explain: info.Explain,
+						Name:    info.Name,
+						Count:   1,
 					}
 					log.Tracef(" 上线 | %s | %s | %s ", info.Name, data.Key, url)
 				}
@@ -289,7 +300,7 @@ func (d *GoDogDiscovery) _APIWatch(datas []param.Data) {
 	for key, info := range d.apidata {
 		if _, ok := mp[key]; !ok {
 			for _, method := range info.API {
-				url := "/api/" + info.Name + "/" + method.Version + "/" + method.Path
+				url := "/" + method.Path
 				if api, ok := d.apis[url]; ok {
 					api.Count--
 					if api.Count <= 0 {

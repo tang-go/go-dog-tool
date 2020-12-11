@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	s := service.NewService(router.GETRouter, router.POSTRouter, router.RPCRouter)
+	s := service.NewService(router.HTTPRouter, router.RPCRouter)
 	s.Run()
 }

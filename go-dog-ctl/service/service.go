@@ -94,7 +94,7 @@ type Service struct {
 }
 
 //NewService 初始化服务
-func NewService(routers ...func(*Service)) *Service {
+func NewService(routers ...func(plugins.Service, *Service)) *Service {
 	ctl := new(Service)
 	//初始化日志
 	ctl.cfg = cfg.NewConfig()
@@ -157,10 +157,17 @@ func NewService(routers ...func(*Service)) *Service {
 		panic(err)
 	}
 	ctl.snowflake = snowflake.NewSnowFlake(id)
-	//初始化Service
+	//初始化api监听
+	ctl.service.APIRegIntercept(func(url, explain string) {
+		ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
+		ctx.SetClient(ctl.service.GetClient())
+		if _, err := authRPC.CreateAPI(ctx, define.Organize, explain, url); err != nil {
+			panic(err.Error())
+		}
+	})
 	//初始化路由
 	for _, router := range routers {
-		router(ctl)
+		router(ctl.service, ctl)
 	}
 	//初始化数据库数据
 	ctl._InitMysql(ctl.cfg.GetPhone(), ctl.cfg.GetPwd())
@@ -170,58 +177,6 @@ func NewService(routers ...func(*Service)) *Service {
 	//启动
 	go ctl._EventExecution()
 	return ctl
-}
-
-//RPC 	注册RPC方法
-//name			方法名称
-//level			方法等级
-//isAuth		是否需要鉴权
-//explain		方法说明
-//fn			注册的方法
-func (s *Service) RPC(name string, level int8, isAuth bool, explain string, fn interface{}) {
-	s.service.RPC(name, level, isAuth, explain, fn)
-}
-
-//POST 			注册POST方法
-//methodname 	Service方法名称
-//version 		Service方法版本
-//path 			Service路由
-//level 		Service等级
-//isAuth 		是否需要鉴权
-//explain		方法描述
-//fn 			注册的方法
-func (s *Service) POST(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
-	ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
-	ctx.SetClient(s.service.GetClient())
-	if _, err := authRPC.CreateAPI(
-		ctx,
-		define.Organize,
-		explain,
-		fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
-		panic(err.Error())
-	}
-	s.service.POST(methodname, version, path, level, isAuth, explain, fn)
-}
-
-//GET GET方法
-//methodname 	Service方法名称
-//version 		Service方法版本
-//path 			Service路由
-//level 		Service等级
-//isAuth 		是否需要鉴权
-//explain		方法描述
-//fn 			注册的方法
-func (s *Service) GET(methodname, version, path string, level int8, isAuth bool, explain string, fn interface{}) {
-	ctx := context.WithTimeout(context.Background(), int64(time.Second*time.Duration(6)))
-	ctx.SetClient(s.service.GetClient())
-	if _, err := authRPC.CreateAPI(
-		ctx,
-		define.Organize,
-		explain,
-		fmt.Sprintf("api/%s/%s/%s", define.SvcController, version, path)); err != nil {
-		panic(err.Error())
-	}
-	s.service.GET(methodname, version, path, level, isAuth, explain, fn)
 }
 
 //Run 启动

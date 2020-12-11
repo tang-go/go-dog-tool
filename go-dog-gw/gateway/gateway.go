@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ import (
 
 //Gateway 服务发现
 type Gateway struct {
+	listenAPI sync.Map
 	service   plugins.Service
 	ws        *ws.Ws
 	xtermWs   *xterm.Ws
@@ -32,12 +34,13 @@ type Gateway struct {
 }
 
 //NewGateway  新建发现服务
-func NewGateway() *Gateway {
+func NewGateway(listenSvcName ...string) *Gateway {
 	gateway := new(Gateway)
+	//初始化监听api
 	//初始化配置
 	cfg := config.NewConfig()
 	//初始化服务发现
-	gateway.discovery = NewGoDogDiscovery(cfg.GetDiscovery())
+	gateway.discovery = NewGoDogDiscovery(listenSvcName, cfg.GetDiscovery())
 	//初始化rpc服务
 	gateway.service = service.CreateService(define.SvcGateWay, cfg, gateway.discovery)
 	//设置服务端最大访问量
@@ -100,7 +103,6 @@ func (g *Gateway) getSwagger(c *gin.Context) {
 		if err := g.auth(token); err != nil {
 			c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
 			return
-
 		}
 		c.String(200, g.ReadDoc())
 		log.Traceln("获取swagger", token)
@@ -112,12 +114,12 @@ func (g *Gateway) getSwagger(c *gin.Context) {
 }
 
 //auth 验证token
-func (s *Gateway) auth(token string) error {
+func (g *Gateway) auth(token string) error {
 	ctx := context.Background()
 	ctx.SetIsTest(false)
 	ctx.SetTraceID(uuid.GetToken())
 	ctx.SetToken(token)
-	return s.service.GetClient().Call(
+	return g.service.GetClient().Call(
 		context.WithTimeout(ctx, int64(time.Second*time.Duration(6))),
 		plugins.RandomMode,
 		define.SvcController,
