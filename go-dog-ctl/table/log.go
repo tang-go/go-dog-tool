@@ -45,6 +45,10 @@ const (
 	CreateGitType
 	//DelGitType 删除git账号密码
 	DelGitType
+	//CreateDocsType 创建文档
+	CreateDocsType
+	//DelDocsType 删除文档
+	DelDocsType
 )
 
 //Log 日志

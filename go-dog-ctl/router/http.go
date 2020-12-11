@@ -74,6 +74,13 @@ func HTTPRouter(router plugins.Service, s *service.Service) {
 			authGitV1.APILevel(4).POST("CreateGit", "create/git", "创建GIT仓库", s.CreateGit)
 			authGitV1.APILevel(4).POST("DelGit", "del/git", "删除GIT仓库", s.DelGit)
 		}
+		authDocsV1 := auth.APIGroup("文档相关").APIVersion("v1")
+		{
+			authDocsV1.APILevel(4).GET("GetDocs", "get/docs/list", "获取文档", s.GetDocs)
+
+			authDocsV1.APILevel(4).POST("CreateDocs", "create/docs", "创建文档", s.CreateDocs)
+			authDocsV1.APILevel(4).POST("DelDocs", "del/docs", "删除文档", s.DelDocs)
+		}
 	}
 	//k8s相关
 	//s.GET("GetKubernetesNameSpace",  "get/kubernetes/namespace",  "获取k8s的namespace", s.GetKubernetesNameSpace)

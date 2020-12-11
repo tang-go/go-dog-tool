@@ -98,4 +98,10 @@ const (
 	DelGitErr = 10047
 	//GetGitListErr 获取git账号密码错误
 	GetGitListErr = 10048
+	//DelDocsErr 删除文档失败
+	DelDocsErr = 10049
+	//CreateDocsErr 创建文档失败
+	CreateDocsErr = 10050
+	//GetDocsErr 获取文档错误
+	GetDocsErr = 10051
 )

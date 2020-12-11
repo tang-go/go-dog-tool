@@ -139,6 +139,7 @@ func NewService(routers ...func(plugins.Service, *Service)) *Service {
 		table.Log{},
 		table.Git{},
 		table.Image{},
+		table.Docs{},
 	)
 	//初始化缓存
 	ctl.cache = cache.NewCache(ctl.cfg)

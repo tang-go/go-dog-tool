@@ -125,9 +125,10 @@ func (s *Service) GetMenu(ctx plugins.Context, request param.GetMenuReq) (respon
 
 //CreateMenu 创建菜单
 func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (response param.CreateMenuRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if _, e := authRPC.CreateMenu(ctx, define.Organize, request.Describe, request.URL, request.ParentID, request.Sort); e != nil {
@@ -157,9 +158,10 @@ func (s *Service) CreateMenu(ctx plugins.Context, request param.CreateMenuReq) (
 
 //DelMenu 删除菜单
 func (s *Service) DelMenu(ctx plugins.Context, request param.DelMenuReq) (response param.DelMenuRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if _, e := authRPC.DelMenu(ctx, define.Organize, request.MenuID); e != nil {
@@ -209,12 +211,13 @@ func (s *Service) GetAPIList(ctx plugins.Context, request param.GetAPIListReq) (
 
 //DelAPI 删除API
 func (s *Service) DelAPI(ctx plugins.Context, request param.DelAPIReq) (response param.DelAPIRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
-	_, e := authRPC.DelAPI(ctx, define.Organize, request.ID)
+	_, e = authRPC.DelAPI(ctx, define.Organize, request.ID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.DelAPIErr, "删除API失败")
@@ -263,9 +266,10 @@ func (s *Service) GetRoleList(ctx plugins.Context, request param.GetRoleListReq)
 
 //CreateRole 创建角色
 func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (response param.CreateRoleRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	id, e := authRPC.CreateRole(ctx, define.Organize, request.Name, request.Describe, false)
@@ -296,9 +300,10 @@ func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (
 
 //DelRole 删除角色
 func (s *Service) DelRole(ctx plugins.Context, request param.DelRoleReq) (response param.DelRoleRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if _, e := authRPC.DelRole(ctx, define.Organize, request.ID); e != nil {
@@ -359,12 +364,13 @@ func (s *Service) GetRoleMenu(ctx plugins.Context, request param.GetRoleMenuReq)
 
 //BindRoleMenu 绑定角色菜单
 func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuReq) (response param.BindRoleMenuRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
-	_, e := authRPC.BindRoleMenu(ctx, define.Organize, request.MenuID, request.RoleID, request.Add, request.Del, request.Update, request.Select)
+	_, e = authRPC.BindRoleMenu(ctx, define.Organize, request.MenuID, request.RoleID, request.Add, request.Del, request.Update, request.Select)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.BindRoleMenuErr, "绑定角色菜单失败")
@@ -392,9 +398,10 @@ func (s *Service) BindRoleMenu(ctx plugins.Context, request param.BindRoleMenuRe
 
 //DelRoleMenu 删除角色菜单
 func (s *Service) DelRoleMenu(ctx plugins.Context, request param.DelRoleMenuReq) (response param.DelRoleMenuRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if _, e := authRPC.DelRoleMenu(ctx, define.Organize, request.RoleID, request.MenuID); e != nil {
@@ -444,12 +451,13 @@ func (s *Service) GetRoleAPI(ctx plugins.Context, request param.GetRoleAPIReq) (
 
 //BindRoleAPI 绑定角色API
 func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq) (response param.BindRoleAPIRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
-	_, e := authRPC.BindRoleAPI(ctx, define.Organize, request.RoleID, request.APIID)
+	_, e = authRPC.BindRoleAPI(ctx, define.Organize, request.RoleID, request.APIID)
 	if e != nil {
 		log.Errorln(e.Error())
 		err = customerror.EnCodeError(define.BindRoleAPIErr, "绑定角色API失败")
@@ -478,9 +486,10 @@ func (s *Service) BindRoleAPI(ctx plugins.Context, request param.BindRoleAPIReq)
 
 //DelRoleAPI 删除角色API
 func (s *Service) DelRoleAPI(ctx plugins.Context, request param.DelRoleAPIReq) (response param.DelRoleAPIRes, err error) {
-	admin, ok := ctx.GetShareByKey("Admin").(*table.Admin)
-	if ok == false {
-		err = customerror.EnCodeError(define.GetBuildServiceListErr, "管理员信息失败")
+	admin, e := s.GetAdmin(ctx)
+	if e != nil {
+		log.Errorln(e.Error())
+		err = customerror.EnCodeError(define.GetAdminInfoErr, e.Error())
 		return
 	}
 	if _, e := authRPC.DelRoleAPI(ctx, define.Organize, request.RoleID, request.APIID); e != nil {
