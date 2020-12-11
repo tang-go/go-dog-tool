@@ -32,5 +32,5 @@ func main() {
 	gate.OpenWebSocket("/xtermws", func(c *gin.Context) {
 		xtermWs.Connect(c.Writer, c.Request, c)
 	})
-	gate.Run()
+	gate.Run(8080)
 }

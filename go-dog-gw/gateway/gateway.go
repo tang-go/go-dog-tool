@@ -78,7 +78,7 @@ func (g *Gateway) Auth(f func(client plugins.Client, ctx plugins.Context, token,
 }
 
 //Run 启动
-func (g *Gateway) Run() {
+func (g *Gateway) Run(port int) {
 	go func() {
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.New()
@@ -94,8 +94,9 @@ func (g *Gateway) Run() {
 		router.POST("/api/*router", g.routerPostResolution)
 		//GET请求
 		router.GET("/api/*router", g.routerGetResolution)
-		log.Tracef("网管启动 0.0.0.0:8080")
-		err := router.Run(":8080")
+		httpport := fmt.Sprintf(":%d", port)
+		log.Tracef("网管启动 0.0.0.0:%d", port)
+		err := router.Run(httpport)
 		if err != nil {
 			panic(err.Error())
 		}
