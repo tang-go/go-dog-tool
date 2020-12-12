@@ -26,13 +26,17 @@ import (
 
 //Gateway 服务发现
 type Gateway struct {
-	listenAPI sync.Map
-	service   plugins.Service
-	ws        *ws.Ws
-	xtermWs   *xterm.Ws
-	websocket map[string]func(c *gin.Context)
-	authfunc  func(client plugins.Client, ctx plugins.Context, token, url string) error
-	discovery *GoDogDiscovery
+	listenAPI             sync.Map
+	service               plugins.Service
+	ws                    *ws.Ws
+	xtermWs               *xterm.Ws
+	websocket             map[string]func(c *gin.Context)
+	authfunc              func(client plugins.Client, ctx plugins.Context, token, url string) error
+	getRequestIntercept   func(c plugins.Context, url string, request []byte) ([]byte, bool)
+	getResponseIntercept  func(c plugins.Context, url string, response []byte)
+	postRequestIntercept  func(c plugins.Context, url string, request []byte) ([]byte, bool)
+	postResponseIntercept func(c plugins.Context, url string, response []byte)
+	discovery             *GoDogDiscovery
 }
 
 //NewGateway  新建发现服务
@@ -51,6 +55,26 @@ func NewGateway(name string, listenSvcName ...string) *Gateway {
 	gateway.websocket = make(map[string]func(c *gin.Context))
 	//初始化文档
 	return gateway
+}
+
+//GetRequestIntercept 拦截get请求
+func (g *Gateway) GetRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool)) {
+	g.getRequestIntercept = f
+}
+
+//GetResponseIntercept 拦截get请求响应
+func (g *Gateway) GetResponseIntercept(f func(c plugins.Context, url string, response []byte)) {
+	g.getResponseIntercept = f
+}
+
+//PostRequestIntercept 拦截get请求
+func (g *Gateway) PostRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool)) {
+	g.postRequestIntercept = f
+}
+
+//PostResponseIntercept 拦截get请求响应
+func (g *Gateway) PostResponseIntercept(f func(c plugins.Context, url string, response []byte)) {
+	g.postResponseIntercept = f
 }
 
 //OpenWebSocket 开启websocket
@@ -203,7 +227,12 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 		}
 		p[key] = v
 	}
-	body, _ := g.service.GetClient().GetCodec().EnCode("json", p)
+	body, err := g.service.GetClient().GetCodec().EnCode("json", p)
+	if err != nil {
+		c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
+		return
+	}
+
 	ctx := context.Background()
 	ctx.SetAddress(c.ClientIP())
 	ctx.SetIsTest(isTest)
@@ -228,11 +257,28 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 		//设置token
 		ctx.SetToken(token)
 	}
+	//拦截请求
+	if g.getRequestIntercept != nil {
+		if reposne, ok := g.getRequestIntercept(ctx, url, body); ok {
+			resp := make(map[string]interface{})
+			g.service.GetClient().GetCodec().DeCode("json", reposne, &resp)
+			c.JSON(http.StatusOK, gin.H{
+				"code": define.SuccessCode,
+				"body": resp,
+				"time": time.Now().Unix(),
+			})
+			return
+		}
+	}
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)
 		c.JSON(http.StatusOK, e)
 		return
+	}
+	//拦截返回
+	if g.getResponseIntercept != nil {
+		g.getResponseIntercept(ctx, url, back)
 	}
 	resp := make(map[string]interface{})
 	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
@@ -321,11 +367,28 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 		//设置token
 		ctx.SetToken(token)
 	}
+	//拦截请求
+	if g.postRequestIntercept != nil {
+		if reposne, ok := g.postRequestIntercept(ctx, url, body); ok {
+			resp := make(map[string]interface{})
+			g.service.GetClient().GetCodec().DeCode("json", reposne, &resp)
+			c.JSON(http.StatusOK, gin.H{
+				"code": define.SuccessCode,
+				"body": resp,
+				"time": time.Now().Unix(),
+			})
+			return
+		}
+	}
 	back, err := g.service.GetClient().SendRequest(ctx, plugins.RandomMode, apiservice.Name, apiservice.Method.Name, "json", body)
 	if err != nil {
 		e := customerror.DeCodeError(err)
 		c.JSON(http.StatusOK, e)
 		return
+	}
+	//拦截返回
+	if g.postResponseIntercept != nil {
+		g.postResponseIntercept(ctx, url, back)
 	}
 	resp := make(map[string]interface{})
 	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
