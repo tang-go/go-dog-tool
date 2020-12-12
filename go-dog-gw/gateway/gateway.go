@@ -32,9 +32,9 @@ type Gateway struct {
 	xtermWs               *xterm.Ws
 	websocket             map[string]func(c *gin.Context)
 	authfunc              func(client plugins.Client, ctx plugins.Context, token, url string) error
-	getRequestIntercept   func(c plugins.Context, url string, request []byte) ([]byte, bool)
+	getRequestIntercept   func(c plugins.Context, url string, request []byte) ([]byte, bool, error)
 	getResponseIntercept  func(c plugins.Context, url string, request []byte, response []byte)
-	postRequestIntercept  func(c plugins.Context, url string, request []byte) ([]byte, bool)
+	postRequestIntercept  func(c plugins.Context, url string, request []byte) ([]byte, bool, error)
 	postResponseIntercept func(c plugins.Context, url string, request []byte, response []byte)
 	discovery             *GoDogDiscovery
 }
@@ -58,7 +58,7 @@ func NewGateway(name string, listenSvcName ...string) *Gateway {
 }
 
 //GetRequestIntercept 拦截get请求
-func (g *Gateway) GetRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool)) {
+func (g *Gateway) GetRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool, error)) {
 	g.getRequestIntercept = f
 }
 
@@ -68,7 +68,7 @@ func (g *Gateway) GetResponseIntercept(f func(c plugins.Context, url string, req
 }
 
 //PostRequestIntercept 拦截get请求
-func (g *Gateway) PostRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool)) {
+func (g *Gateway) PostRequestIntercept(f func(c plugins.Context, url string, request []byte) ([]byte, bool, error)) {
 	g.postRequestIntercept = f
 }
 
@@ -259,7 +259,12 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	}
 	//拦截请求
 	if g.getRequestIntercept != nil {
-		if reposne, ok := g.getRequestIntercept(ctx, url, body); ok {
+		if reposne, ok, err := g.getRequestIntercept(ctx, url, body); ok {
+			if err != nil {
+				log.Errorln(err.Error())
+				c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
+				return
+			}
 			resp := make(map[string]interface{})
 			g.service.GetClient().GetCodec().DeCode("json", reposne, &resp)
 			c.JSON(http.StatusOK, gin.H{
@@ -369,7 +374,12 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	}
 	//拦截请求
 	if g.postRequestIntercept != nil {
-		if reposne, ok := g.postRequestIntercept(ctx, url, body); ok {
+		if reposne, ok, err := g.postRequestIntercept(ctx, url, body); ok {
+			if err != nil {
+				log.Errorln(err.Error())
+				c.JSON(customerror.ParamError, customerror.EnCodeError(customerror.ParamError, err.Error()))
+				return
+			}
 			resp := make(map[string]interface{})
 			g.service.GetClient().GetCodec().DeCode("json", reposne, &resp)
 			c.JSON(http.StatusOK, gin.H{
