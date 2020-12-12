@@ -33,9 +33,9 @@ type Gateway struct {
 	websocket             map[string]func(c *gin.Context)
 	authfunc              func(client plugins.Client, ctx plugins.Context, token, url string) error
 	getRequestIntercept   func(c plugins.Context, url string, request []byte) ([]byte, bool)
-	getResponseIntercept  func(c plugins.Context, url string, response []byte)
+	getResponseIntercept  func(c plugins.Context, url string, request []byte, response []byte)
 	postRequestIntercept  func(c plugins.Context, url string, request []byte) ([]byte, bool)
-	postResponseIntercept func(c plugins.Context, url string, response []byte)
+	postResponseIntercept func(c plugins.Context, url string, request []byte, response []byte)
 	discovery             *GoDogDiscovery
 }
 
@@ -63,7 +63,7 @@ func (g *Gateway) GetRequestIntercept(f func(c plugins.Context, url string, requ
 }
 
 //GetResponseIntercept 拦截get请求响应
-func (g *Gateway) GetResponseIntercept(f func(c plugins.Context, url string, response []byte)) {
+func (g *Gateway) GetResponseIntercept(f func(c plugins.Context, url string, request []byte, response []byte)) {
 	g.getResponseIntercept = f
 }
 
@@ -73,7 +73,7 @@ func (g *Gateway) PostRequestIntercept(f func(c plugins.Context, url string, req
 }
 
 //PostResponseIntercept 拦截get请求响应
-func (g *Gateway) PostResponseIntercept(f func(c plugins.Context, url string, response []byte)) {
+func (g *Gateway) PostResponseIntercept(f func(c plugins.Context, url string, request []byte, response []byte)) {
 	g.postResponseIntercept = f
 }
 
@@ -278,7 +278,7 @@ func (g *Gateway) routerGetResolution(c *gin.Context) {
 	}
 	//拦截返回
 	if g.getResponseIntercept != nil {
-		g.getResponseIntercept(ctx, url, back)
+		g.getResponseIntercept(ctx, url, body, back)
 	}
 	resp := make(map[string]interface{})
 	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
@@ -388,7 +388,7 @@ func (g *Gateway) routerPostResolution(c *gin.Context) {
 	}
 	//拦截返回
 	if g.postResponseIntercept != nil {
-		g.postResponseIntercept(ctx, url, back)
+		g.postResponseIntercept(ctx, url, body, back)
 	}
 	resp := make(map[string]interface{})
 	g.service.GetClient().GetCodec().DeCode("json", back, &resp)
