@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"github.com/tang-go/go-dog-tool/go-dog-auth/param"
 	"github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog/log"
@@ -108,22 +109,28 @@ func (s *Service) GetRoleAPI(ctx plugins.Context, request param.GetRoleAPIReq) (
 
 //CreateRole 创建角色
 func (s *Service) CreateRole(ctx plugins.Context, request param.CreateRoleReq) (response param.CreateRoleRes, err error) {
-	if s.mysql.GetReadEngine().Where("organize = ? AND name = ?", request.Organize, request.Name).First(&table.SysRole{}).RecordNotFound() == true {
-		role := table.SysRole{
-			Organize: request.Organize,
-			Name:     request.Name,
-			Describe: request.Describe,
-			IsSuper:  request.IsSuper,
-			Time:     time.Now().Unix(),
-		}
-		if err = s.mysql.GetWriteEngine().Create(&role).Error; err != nil {
-			log.Errorln(err.Error())
+	sysRole := new(table.SysRole)
+	if err = s.mysql.GetReadEngine().Where("organize = ? AND name = ?", request.Organize, request.Name).First(sysRole).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			role := table.SysRole{
+				Organize: request.Organize,
+				Name:     request.Name,
+				Describe: request.Describe,
+				IsSuper:  request.IsSuper,
+				Time:     time.Now().Unix(),
+			}
+			if err = s.mysql.GetWriteEngine().Create(&role).Error; err != nil {
+				log.Errorln(err.Error())
+				return
+			}
+			response.ID = role.ID
 			return
 		}
-		response.ID = role.ID
+		log.Errorln(err.Error())
 		return
+
 	}
-	err = errors.New("权限名称已经存在")
+	response.ID = sysRole.ID
 	return
 }
 
