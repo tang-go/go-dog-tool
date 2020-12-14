@@ -12,7 +12,7 @@ import (
 	"github.com/tang-go/go-dog/plugins"
 )
 
-//CreateHarbor 创建git账号
+//CreateGit 创建git账号
 func (s *Service) CreateGit(ctx plugins.Context, request param.CreateGitReq) (response param.CreateGitRes, err error) {
 	if request.Address == "" {
 		err = customerror.EnCodeError(define.CreateGitErr, "git仓库地址不能为空")
