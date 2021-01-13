@@ -13,13 +13,12 @@ require (
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/jinzhu/gorm v1.9.16
-	github.com/lib/pq v1.2.0 // indirect
 	github.com/mojocn/base64Captcha v1.3.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/sipt/GoJsoner v0.0.0-20170413020122-3e1341522aa6
-	github.com/swaggo/gin-swagger v1.2.0
+	github.com/swaggo/gin-swagger v1.3.0
 	github.com/swaggo/swag v1.6.8 // indirect
-	github.com/tang-go/go-dog v0.0.0-20201211071503-16537ea3936a
+	github.com/tang-go/go-dog v1.0.4
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	k8s.io/api v0.17.0

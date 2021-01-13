@@ -4,8 +4,8 @@ import (
 	"github.com/tang-go/go-dog-tool/define"
 	"github.com/tang-go/go-dog-tool/go-dog-auth/table"
 	"github.com/tang-go/go-dog/cache"
+	mysql "github.com/tang-go/go-dog/gorm"
 	"github.com/tang-go/go-dog/log"
-	"github.com/tang-go/go-dog/mysql"
 	"github.com/tang-go/go-dog/pkg/service"
 	"github.com/tang-go/go-dog/plugins"
 )
