@@ -60,6 +60,12 @@ func (d *Discovery) Run() {
 				continue
 			}
 			d.topics.Store(listen.Label, listen.Label)
+		case param.Heart:
+			if err := d._SendMsg(d.conn, param.Heart, nil); err != nil {
+				log.Errorln(err.Error())
+				d.conn.Close()
+				continue
+			}
 		}
 	}
 }
@@ -111,7 +117,11 @@ func (d *Discovery) _SendMsg(conn net.Conn, cmd int8, buff []byte) error {
 		log.Errorln(err.Error())
 		return err
 	}
-	if _, err := io.WriteByTime(conn, data, time.Now().Add(time.Second*5)); err != nil {
+	// if _, err := io.WriteByTime(conn, data, time.Now().Add(time.Second*10)); err != nil {
+	// 	log.Errorln(err.Error())
+	// 	return err
+	// }
+	if _, err := io.Write(conn, data); err != nil {
 		log.Errorln(err.Error())
 		return err
 	}
